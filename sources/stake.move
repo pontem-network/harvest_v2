@@ -440,18 +440,12 @@ module harvest::stake {
             };
 
             // recalculate unobtainable reward after stake amount changed
-            let epoch_count = pool.current_epoch + 1;
-            let epochs = &mut pool.epochs;
-            let i = 0;
-            while (i < epoch_count) {
-                let accum_reward = vector::borrow(epochs, i).accum_reward;
-                let unobt_rew = (accum_reward * user_stake_amount_with_boosted(user_stake)) / pool.scale;
-
-                let el = vector::borrow_mut(&mut user_stake.unobtainable_rewards, i);
-                *el = unobt_rew;
-
-                i = i + 1;
-            };
+            update_unobtainable_reward(
+                pool.scale,
+                pool.current_epoch + 1,
+                &pool.epochs,
+                user_stake
+            );
 
             user_stake.unlock_time = current_time + WEEK_IN_SECONDS;
         };
@@ -508,18 +502,12 @@ module harvest::stake {
         };
 
         // recalculate unobtainable reward after stake amount changed
-        let epoch_count = pool.current_epoch + 1;
-        let epochs = &mut pool.epochs;
-        let i = 0;
-        while (i < epoch_count) {
-            let accum_reward = vector::borrow(epochs, i).accum_reward;
-            let unobt_rew = (accum_reward * user_stake_amount_with_boosted(user_stake)) / pool.scale;
-
-            let el = vector::borrow_mut(&mut user_stake.unobtainable_rewards, i);
-            *el = unobt_rew;
-
-            i = i + 1;
-        };
+        update_unobtainable_reward(
+            pool.scale,
+            pool.current_epoch + 1,
+            &pool.epochs,
+            user_stake
+        );
 
         event::emit_event<UnstakeEvent>(
             &mut pool.unstake_events,
@@ -609,19 +597,13 @@ module harvest::stake {
         user_stake.boosted_amount = ((user_stake.amount as u128) * boost_percent) / 100;
         pool.total_boosted = pool.total_boosted + user_stake.boosted_amount;
 
-        // recalculate unobtainable reward after stake boosted changed
-        let epoch_count = pool.current_epoch + 1;
-        let epochs = &mut pool.epochs;
-        let i = 0;
-        while (i < epoch_count) {
-            let accum_reward = vector::borrow(epochs, i).accum_reward;
-            let unobt_rew = (accum_reward * user_stake_amount_with_boosted(user_stake)) / pool.scale;
-
-            let el = vector::borrow_mut(&mut user_stake.unobtainable_rewards, i);
-            *el = unobt_rew;
-
-            i = i + 1;
-        };
+        // recalculate unobtainable reward after stake amount changed
+        update_unobtainable_reward(
+            pool.scale,
+            pool.current_epoch + 1,
+            &pool.epochs,
+            user_stake
+        );
 
         event::emit_event(
             &mut pool.boost_events,
@@ -656,19 +638,13 @@ module harvest::stake {
         pool.total_boosted = pool.total_boosted - user_stake.boosted_amount;
         user_stake.boosted_amount = 0;
 
-        // recalculate unobtainable reward after stake boosted changed
-        let epoch_count = pool.current_epoch + 1;
-        let epochs = &mut pool.epochs;
-        let i = 0;
-        while (i < epoch_count) {
-            let accum_reward = vector::borrow(epochs, i).accum_reward;
-            let unobt_rew = (accum_reward * user_stake_amount_with_boosted(user_stake)) / pool.scale;
-
-            let el = vector::borrow_mut(&mut user_stake.unobtainable_rewards, i);
-            *el = unobt_rew;
-
-            i = i + 1;
-        };
+        // recalculate unobtainable reward after stake amount changed
+        update_unobtainable_reward(
+            pool.scale,
+            pool.current_epoch + 1,
+            &pool.epochs,
+            user_stake
+        );
 
         event::emit_event(
             &mut pool.remove_boost_events,
@@ -1152,6 +1128,27 @@ module harvest::stake {
 
         ((accum_reward * user_stake_amount_with_boosted(user_stake)) / scale)
             - unobtainable_reward
+    }
+
+    fun update_unobtainable_reward<R>(
+        scale: u128,
+        epoch_count: u64,
+        epochs: &vector<Epoch<R>>,
+        user_stake: &mut UserStake
+    ) {
+        // recalculate unobtainable reward after stake boosted changed
+
+        let i = 0;
+
+        while (i < epoch_count) {
+            let accum_reward = vector::borrow(epochs, i).accum_reward;
+            let unobt_rew = (accum_reward * user_stake_amount_with_boosted(user_stake)) / scale;
+
+            let el = vector::borrow_mut(&mut user_stake.unobtainable_rewards, i);
+            *el = unobt_rew;
+
+            i = i + 1;
+        };
     }
 
     /// Get total staked amount + boosted amount by the user.
