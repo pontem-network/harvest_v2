@@ -327,12 +327,8 @@ module harvest::stake {
 
             // get undistributed rewards from prev epoch
             if (epoch_time_left > 0) {
-                undistrib_rewards_amount = epoch_time_left * epoch.reward_per_sec;
+                undistrib_rewards_amount = epoch.rewards_amount - epoch.distributed;
             };
-
-            // end current epoch
-            epoch.distributed = epoch.rewards_amount - undistrib_rewards_amount;
-            epoch.ended_at = current_time;
         };
 
         // merge undistributed & curr rewards into new reward_per_sec
@@ -809,7 +805,6 @@ module harvest::stake {
         assert!(exists<StakePool<S, R>>(pool_addr), ERR_NO_POOL);
 
         let pool = borrow_global<StakePool<S, R>>(pool_addr);
-
         table::contains(&pool.stakes, user_addr)
     }
 
@@ -820,7 +815,8 @@ module harvest::stake {
     public fun get_pool_total_stake<S, R>(pool_addr: address): u64 acquires StakePool {
         assert!(exists<StakePool<S, R>>(pool_addr), ERR_NO_POOL);
 
-        coin::value(&borrow_global<StakePool<S, R>>(pool_addr).stake_coins)
+        let pool = borrow_global<StakePool<S, R>>(pool_addr);
+        coin::value(&pool.stake_coins)
     }
 
     #[view]
@@ -852,7 +848,6 @@ module harvest::stake {
         assert!(exists<StakePool<S, R>>(pool_addr), ERR_NO_POOL);
 
         let pool = borrow_global<StakePool<S, R>>(pool_addr);
-
         assert!(table::contains(&pool.stakes, user_addr), ERR_NO_STAKE);
 
         table::borrow(&pool.stakes, user_addr).amount
@@ -867,7 +862,6 @@ module harvest::stake {
         assert!(exists<StakePool<S, R>>(pool_addr), ERR_NO_POOL);
 
         let pool = borrow_global<StakePool<S, R>>(pool_addr);
-
         assert!(table::contains(&pool.stakes, user_addr), ERR_NO_STAKE);
 
         option::is_some(&table::borrow(&pool.stakes, user_addr).nft)
@@ -882,7 +876,6 @@ module harvest::stake {
         assert!(exists<StakePool<S, R>>(pool_addr), ERR_NO_POOL);
 
         let pool = borrow_global<StakePool<S, R>>(pool_addr);
-
         assert!(table::contains(&pool.stakes, user_addr), ERR_NO_STAKE);
 
         table::borrow(&pool.stakes, user_addr).boosted_amount
@@ -946,7 +939,6 @@ module harvest::stake {
         assert!(exists<StakePool<S, R>>(pool_addr), ERR_NO_POOL);
 
         let pool = borrow_global<StakePool<S, R>>(pool_addr);
-
         assert!(table::contains(&pool.stakes, user_addr), ERR_NO_STAKE);
 
         let current_epoch_endtime = vector::borrow(&pool.epochs, pool.current_epoch).end_time;
@@ -963,10 +955,10 @@ module harvest::stake {
         assert!(exists<StakePool<S, R>>(pool_addr), ERR_NO_POOL);
 
         let pool = borrow_global<StakePool<S, R>>(pool_addr);
-
         assert!(table::contains(&pool.stakes, user_addr), ERR_NO_STAKE);
 
         let current_time = timestamp::now_seconds();
+        // todo: remove endtime dep
         let current_epoch_endtime = vector::borrow(&pool.epochs, pool.current_epoch).end_time;
         let unlock_time =
             math64::min(current_epoch_endtime, table::borrow(&pool.stakes, user_addr).unlock_time);
@@ -980,6 +972,7 @@ module harvest::stake {
     /// Returns true if emergency happened (local or global).
     public fun is_emergency<S, R>(pool_addr: address): bool acquires StakePool {
         assert!(exists<StakePool<S, R>>(pool_addr), ERR_NO_POOL);
+
         let pool = borrow_global<StakePool<S, R>>(pool_addr);
         is_emergency_inner(pool)
     }
@@ -990,6 +983,7 @@ module harvest::stake {
     /// Returns true if local emergency enabled for pool.
     public fun is_local_emergency<S, R>(pool_addr: address): bool acquires StakePool {
         assert!(exists<StakePool<S, R>>(pool_addr), ERR_NO_POOL);
+
         let pool = borrow_global<StakePool<S, R>>(pool_addr);
         pool.emergency_locked
     }
@@ -1046,13 +1040,22 @@ module harvest::stake {
             if (new_accum_rewards != 0) {
                 epoch.accum_reward = epoch.accum_reward + new_accum_rewards;
             };
+
             epoch.last_update_time = current_time;
 
-            if (epoch_end_time < current_time) {
+            // calculate distributed rewards amount
+            let undistrib_rewards_amount = 0;
+            if (epoch_end_time > current_time) {
+                let epoch_time_left = epoch_end_time - current_time;
+                undistrib_rewards_amount = epoch_time_left * epoch.reward_per_sec
+            };
+            epoch.distributed = epoch.rewards_amount - undistrib_rewards_amount;
+
+            // create ghost epoch to fill up empty period
+            if (epoch_end_time <= current_time) {
                 epoch.ended_at = current_time;
                 let ghost_epoch = Epoch<R> {
                     rewards_amount: 0,
-                    // rewards_to_distribute: coin::zero(),
 
                     reward_per_sec: 0,
                     accum_reward: 0,

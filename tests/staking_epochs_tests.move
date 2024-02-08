@@ -32,17 +32,34 @@ module harvest::staking_epochs_tests_move {
         std::debug::print(&std::string::utf8(b"============================================================================"));
     }
 
+    // Deposit reward on different epoch stages test
+    // todo: what if epoch ended but no user where there
+
     #[test]
-    public fun test_creaate_different_epochs() {
+    public fun test_deposit_rew_on_unfinished_rew_epoch() {
         let (harvest, _) = initialize_test();
 
         let alice_acc = new_account_with_stake_coins(@alice, amount<S>(100, 0));
         coin::register<R>(&alice_acc);
 
         // register staking pool with rewards
-        let reward_coins = mint_default_coin<R>(amount<R>(0, 1000));
-        let duration = 10;
+        let reward_coins = mint_default_coin<R>(amount<R>(1000, 0));
+        let duration = 500;
         stake::register_pool<S, R>(&harvest, reward_coins, duration, option::none());
+
+        // check 0 epoch fields
+        let (rewards_amount, reward_per_sec, accum_reward,start_time,
+            last_update_time,end_time, distributed, ended_at, is_ghost)
+            = stake::get_epoch_info<S, R>(@harvest, 0);
+        assert!(rewards_amount == amount<R>(1000, 0), 1);
+        assert!(reward_per_sec == amount<R>(2, 0), 1);
+        assert!(accum_reward == 0, 1);
+        assert!(start_time == START_TIME, 1);
+        assert!(last_update_time == START_TIME, 1);
+        assert!(end_time == START_TIME + duration, 1);
+        assert!(distributed == 0, 1);
+        assert!(ended_at == 0, 1);
+        assert!(is_ghost == false, 1);
 
         // stake 100 from alice
         stake::stake<S, R>(&alice_acc, @harvest, coin::withdraw<S>(&alice_acc, amount<S>(100, 0)));
@@ -50,96 +67,67 @@ module harvest::staking_epochs_tests_move {
         print_epoch(0);
         print_line();
 
-        // wait 5 sec
-        timestamp::update_global_time_for_test_secs(START_TIME + 5);
+        // wait half of epoch
+        timestamp::update_global_time_for_test_secs(START_TIME + 250);
 
         // create new epoch, take some rewards from previous
-        let reward_coins = mint_default_coin<R>(amount<R>(0, 10));
-        stake::deposit_reward_coins<S, R>(&alice_acc, @harvest, reward_coins, 10);
+        let reward_coins = mint_default_coin<R>(amount<R>(1000, 0));
+        stake::deposit_reward_coins<S, R>(&alice_acc, @harvest, reward_coins, 500);
+        let curr_epoch = stake::get_pool_current_epoch<S, R>(@harvest);
+        assert!(curr_epoch == 1, 0);
+
+        // check 0 epoch fields
+        let (_, _, accum_reward, _, last_update_time,end_time, distributed, ended_at, _)
+            = stake::get_epoch_info<S, R>(@harvest, 0);
+        assert!(accum_reward == 500_0000_000000, 1);
+        assert!(last_update_time == START_TIME + 250, 1);
+        assert!(end_time == START_TIME + duration, 1);
+        assert!(distributed == amount<R>(500, 0), 1);
+        assert!(ended_at == START_TIME + 250, 1);
+
+        // check 1 epoch fields
+        let (rewards_amount, reward_per_sec, accum_reward,start_time,
+            last_update_time,end_time, distributed, ended_at, is_ghost)
+            = stake::get_epoch_info<S, R>(@harvest, 1);
+        // 1000 new + 500 from prev epoch
+        assert!(rewards_amount == amount<R>(1500, 0), 1);
+        assert!(reward_per_sec == amount<R>(3, 0), 1);
+        assert!(accum_reward == 0, 1);
+        assert!(start_time == START_TIME + 250, 1);
+        assert!(last_update_time == START_TIME + 250, 1);
+        assert!(end_time == START_TIME + 250 + 500, 1);
+        assert!(distributed == 0, 1);
+        assert!(ended_at == 0, 1);
+        assert!(is_ghost == false, 1);
 
         print_epoch(0);
         print_epoch(1);
         print_line();
 
-        // wait 10 sec
-        timestamp::update_global_time_for_test_secs(START_TIME + 5 + 10);
+        // wait full epoch 1
+        timestamp::update_global_time_for_test_secs(START_TIME + 250 + 500);
 
-        // create new epoch, take some rewards from previous
-        let reward_coins = mint_default_coin<R>(amount<R>(0, 10));
-        stake::deposit_reward_coins<S, R>(&alice_acc, @harvest, reward_coins, 10);
+        // check all rewards was distributed
+        let rew = stake::harvest<S, R>(&alice_acc, @harvest);
+        assert!(coin::value(&rew) == amount<R>(2000, 0), 1);
 
-        print_epoch(0);
-        print_epoch(1);
-        print_epoch(2);
-        print_line();
+        // check 1 epoch fields
+        let (_, _, accum_reward, _, last_update_time,end_time, distributed, ended_at, _)
+            = stake::get_epoch_info<S, R>(@harvest, 1);
+        assert!(accum_reward == 1500_0000_000000, 1);
+        assert!(last_update_time == START_TIME + 250 + 500, 1);
+        assert!(end_time == START_TIME + 250 + 500, 1);
+        assert!(distributed == amount<R>(1500, 0), 1);
+        assert!(ended_at == 0, 1);
 
-        // wait 3610 sec
-        timestamp::update_global_time_for_test_secs(START_TIME + 5 + 10 + 3610);
 
-        // create new epoch, take some rewards from previous
-        let reward_coins = mint_default_coin<R>(amount<R>(0, 10));
-        stake::deposit_reward_coins<S, R>(&alice_acc, @harvest, reward_coins, 10);
 
-        print_epoch(0);
-        print_epoch(1);
-        print_epoch(2);
-        print_epoch(3);
-        print_epoch(4);
-        print_line();
 
-        // wait 10 sec
-        timestamp::update_global_time_for_test_secs(START_TIME + 5 + 10 + 3610 + 10);
-
-        let rewards = stake::harvest<S, R>(&alice_acc, @harvest);
-        std::debug::print(&aptos_std::string_utils::format1(&b"coin::value(&rewards) = {}", coin::value(&rewards)));
-        // assert!(coin::value(&rewards) == amount<R>(0, 1030), 1);
-        coin::deposit(@alice, rewards);
-
-        // // stake 100 StakeCoins from alice
-        // let coins =
-        //     coin::withdraw<S>(&alice_acc, amount<S>(100, 0));
-        // stake::stake<S, R>(&alice_acc, @harvest, coins);
-
-        // // check stake earned and pool accum_reward
-        // let (_, accum_reward, _, _, _) =
-        //     stake::get_pool_info<S, R>(@harvest);
-        // assert!(accum_reward == 0, 1);
-        // assert!(stake::get_pending_user_rewards<S, R>(@harvest, @alice) == 0, 1);
-        //
-        // // wait one week
-        // timestamp::update_global_time_for_test_secs(START_TIME + WEEK_IN_SECONDS);
-        //
-        // // check stake earned
-        // assert!(stake::get_pending_user_rewards<S, R>(@harvest, @alice) == amount<R>(604800, 0), 1);
-        //
-        // // check get_pending_user_rewards calculations didn't affect pool accum_reward
-        // let (_, accum_reward, _, _, _) =
-        //     stake::get_pool_info<S, R>(@harvest);
-        // assert!(accum_reward == 0, 1);
-        //
-        // // unstake all 100 StakeCoins from alice
-        // let coins =
-        //     stake::unstake<S, R>(&alice_acc, @harvest, amount<S>(100, 0));
-        // coin::deposit(@alice, coins);
-        //
-        // // wait one week
-        // timestamp::update_global_time_for_test_secs(START_TIME + WEEK_IN_SECONDS + WEEK_IN_SECONDS);
-        //
-        // // check stake earned didn't change a week after full unstake
-        // assert!(stake::get_pending_user_rewards<S, R>(@harvest, @alice) == amount<R>(604800, 0), 1);
-        //
-        // // harvest from alice
-        // let coins =
-        //     stake::harvest<S, R>(&alice_acc, @harvest);
-        // assert!(coin::value(&coins) == amount<R>(604800, 0), 1);
-        // coin::deposit<R>(@alice, coins);
-        //
-        // // check earned calculations after harvest
-        // assert!(stake::get_pending_user_rewards<S, R>(@harvest, @alice) == 0, 1);
+        coin::deposit(@alice, rew);
     }
 
     #[test]
-    public fun test_reward_is_not_accumulating_in_ghost_epoch() {
+    public fun test_rewards_accumulating_after_ghost_epoch() {
         let (harvest, _) = initialize_test();
 
         let alice_acc = new_account_with_stake_coins(@alice, amount<S>(100, 0));
