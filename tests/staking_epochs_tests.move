@@ -117,6 +117,103 @@ module harvest::staking_epochs_tests_move {
     }
 
     #[test]
+    public fun test_deposit_rew_on_finished_this_sec_rew_epoch() {
+        let (harvest, _) = initialize_test();
+
+        let alice_acc = new_account_with_stake_coins(@alice, amount<S>(100, 0));
+        coin::register<R>(&alice_acc);
+
+        // register staking pool with rewards
+        let reward_coins = mint_default_coin<R>(amount<R>(1000, 0));
+        let duration = 500;
+        stake::register_pool<S, R>(&harvest, reward_coins, duration, option::none());
+
+        // check 0 epoch fields
+        let (rewards_amount, reward_per_sec, accum_reward,start_time,
+            last_update_time,end_time, distributed, ended_at, is_ghost)
+            = stake::get_epoch_info<S, R>(@harvest, 0);
+        assert!(rewards_amount == amount<R>(1000, 0), 1);
+        assert!(reward_per_sec == amount<R>(2, 0), 1);
+        assert!(accum_reward == 0, 1);
+        assert!(start_time == START_TIME, 1);
+        assert!(last_update_time == START_TIME, 1);
+        assert!(end_time == START_TIME + duration, 1);
+        assert!(distributed == 0, 1);
+        assert!(ended_at == 0, 1);
+        assert!(is_ghost == false, 1);
+
+        // stake 100 from alice
+        stake::stake<S, R>(&alice_acc, @harvest, coin::withdraw<S>(&alice_acc, amount<S>(100, 0)));
+
+        // wait full epoch
+        timestamp::update_global_time_for_test_secs(START_TIME + 500);
+
+        // create new epoch
+        let reward_coins = mint_default_coin<R>(amount<R>(1000, 0));
+        stake::deposit_reward_coins<S, R>(&alice_acc, @harvest, reward_coins, 500);
+        let curr_epoch = stake::get_pool_current_epoch<S, R>(@harvest);
+        assert!(curr_epoch == 2, 0);
+
+        // check 0 epoch fields
+        let (_, _, accum_reward, _, last_update_time,end_time, distributed, ended_at, _)
+            = stake::get_epoch_info<S, R>(@harvest, 0);
+        assert!(accum_reward == 1000_0000_000000, 1);
+        assert!(last_update_time == START_TIME + duration, 1);
+        assert!(end_time == START_TIME + duration, 1);
+        assert!(distributed == amount<R>(1000, 0), 1);
+        assert!(ended_at == START_TIME + duration, 1);
+
+        // Below epoch appeared as a result of an edge case when the epoch creation
+        // transaction came at the second of the end of the previous epoch
+
+        // check 1 epoch fields
+        let (rewards_amount, reward_per_sec, accum_reward,start_time,
+            last_update_time,end_time, distributed, ended_at, is_ghost)
+            = stake::get_epoch_info<S, R>(@harvest, 1);
+        assert!(rewards_amount == 0, 1);
+        assert!(reward_per_sec == 0, 1);
+        assert!(accum_reward == 0, 1);
+        assert!(start_time == START_TIME + 500, 1);
+        assert!(last_update_time == START_TIME + 500, 1);
+        assert!(end_time == START_TIME + 500, 1);
+        assert!(distributed == 0, 1);
+        assert!(ended_at == START_TIME + 500, 1);
+        assert!(is_ghost == true, 1);
+
+        // check 2 epoch fields
+        let (rewards_amount, reward_per_sec, accum_reward,start_time,
+            last_update_time,end_time, distributed, ended_at, is_ghost)
+            = stake::get_epoch_info<S, R>(@harvest, 2);
+        assert!(rewards_amount == amount<R>(1000, 0), 1);
+        assert!(reward_per_sec == amount<R>(2, 0), 1);
+        assert!(accum_reward == 0, 1);
+        assert!(start_time == START_TIME + 500, 1);
+        assert!(last_update_time == START_TIME + 500, 1);
+        assert!(end_time == START_TIME + 500 + 500, 1);
+        assert!(distributed == 0, 1);
+        assert!(ended_at == 0, 1);
+        assert!(is_ghost == false, 1);
+
+        // wait full epoch 2
+        timestamp::update_global_time_for_test_secs(START_TIME + 500 + 500);
+
+        // check all rewards was distributed
+        let rew = stake::harvest<S, R>(&alice_acc, @harvest);
+        assert!(coin::value(&rew) == amount<R>(2000, 0), 1);
+
+        // check 1 epoch fields
+        let (_, _, accum_reward, _, last_update_time,end_time, distributed, ended_at, _)
+            = stake::get_epoch_info<S, R>(@harvest, 2);
+        assert!(accum_reward == 1000_0000_000000, 1);
+        assert!(last_update_time == START_TIME + 500 + 500, 1);
+        assert!(end_time == START_TIME + 500 + 500, 1);
+        assert!(distributed == amount<R>(1000, 0), 1);
+        assert!(ended_at == START_TIME + 500 + 500, 1);
+
+        coin::deposit(@alice, rew);
+    }
+
+    #[test]
     public fun test_rewards_accumulating_after_ghost_epoch() {
         let (harvest, _) = initialize_test();
 
