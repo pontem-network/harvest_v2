@@ -329,6 +329,9 @@ module harvest::stake {
             if (epoch_time_left > 0) {
                 undistrib_rewards_amount = epoch.rewards_amount - epoch.distributed;
             };
+
+            // finish current epoch
+            epoch.ended_at = current_time;
         };
 
         // merge undistributed & curr rewards into new reward_per_sec
