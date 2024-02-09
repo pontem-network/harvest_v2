@@ -1130,16 +1130,18 @@ module harvest::stake {
             - unobtainable_reward
     }
 
+    /// Calculates unobtainable reward for user.
+    ///     * `scale` - multiplier to handle decimals.
+    ///     * `epoch_count` - count of epochs in pool.
+    ///     * `epochs` - vector of pool epochs.
+    ///     * `user_stake` - the user stake.
     fun update_unobtainable_reward<R>(
         scale: u128,
         epoch_count: u64,
         epochs: &vector<Epoch<R>>,
         user_stake: &mut UserStake
     ) {
-        // recalculate unobtainable reward after stake boosted changed
-
         let i = 0;
-
         while (i < epoch_count) {
             let accum_reward = vector::borrow(epochs, i).accum_reward;
             let unobt_rew = (accum_reward * user_stake_amount_with_boosted(user_stake)) / scale;
