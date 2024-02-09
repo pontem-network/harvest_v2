@@ -22,3 +22,7 @@ subdir = "aptos-move/framework/aptos-framework"
 git = "https://github.com/aptos-labs/aptos-core.git"
 rev = "mainnet"
 subdir = "aptos-move/framework/aptos-token"
+
+[dependencies.LiquidswapV1]
+git = 'https://github.com/pontem-network/liquidswap_v1.git'
+rev = 'main'
