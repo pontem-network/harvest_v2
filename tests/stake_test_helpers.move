@@ -20,7 +20,7 @@ module harvest::stake_test_helpers {
         burn_cap: BurnCapability<CoinType>,
     }
 
-    public fun create_token(collection_owner: &signer, collection_name: String, name: String): Token {
+    public fun create_stake_token(collection_owner: &signer, collection_name: String, name: String): Token {
         let collection_owner_addr = signer::address_of(collection_owner);
 
         token::create_token_script(
@@ -53,7 +53,8 @@ module harvest::stake_test_helpers {
         token::mint_token(collection_owner, token_data_id, amount);
     }
 
-    public fun create_collection(owner_addr: address, collection_name: String): signer {
+    // Stake token collection
+    public fun create_st_collection(owner_addr: address, collection_name: String): signer {
         let collection_owner = new_account(owner_addr);
 
         token::create_collection(

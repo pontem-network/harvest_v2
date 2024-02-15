@@ -18,8 +18,8 @@ module harvest::stake_lb_tests {
         initialize_reward_coin,
         mint_default_coin,
         RewardCoin,
-        create_collection,
-        create_token,
+        create_st_collection,
+        create_stake_token,
         StakeCoin,
         initialize_stake_coin,
         new_account_with_stake_coins, mint_token
@@ -53,11 +53,11 @@ module harvest::stake_lb_tests {
 
         let alice_acc = new_account(@alice);
         let collection_name = string::utf8(b"Liquidswap v1 #1 \"CX\"-\"CY\"-\"X25\"");
-        create_collection(signer::address_of(&collection_owner), collection_name);
+        create_st_collection(signer::address_of(&collection_owner), collection_name);
 
         // register staking pool with rewards
         let reward_coins = mint_default_coin<RewardCoin>(15768000000000);
-        let stake_token = create_token(&collection_owner, collection_name, string::utf8(b"LB"));
+        let stake_token = create_stake_token(&collection_owner, collection_name, string::utf8(b"LB"));
         let duration = 15768000;
         stake_lb::register_pool<RewardCoin>(&alice_acc, &stake_token, reward_coins, duration, option::none());
         token::deposit_token(&alice_acc, stake_token);
@@ -85,10 +85,10 @@ module harvest::stake_lb_tests {
         let alice_acc = new_account(@alice);
         let bob_acc = new_account(@bob);
         let collection_name = string::utf8(b"Liquidswap v1 #1 \"CX\"-\"CY\"-\"X25\"");
-        create_collection(signer::address_of(&collection_owner), collection_name);
+        create_st_collection(signer::address_of(&collection_owner), collection_name);
 
         // register staking pool with rewards
-        let stake_token = create_token(&collection_owner, collection_name, string::utf8(b"LB"));
+        let stake_token = create_stake_token(&collection_owner, collection_name, string::utf8(b"LB"));
         let reward_coins = mint_default_coin<RewardCoin>(15768000000000);
         let duration = 15768000;
         stake_lb::register_pool<RewardCoin>(&alice_acc, &stake_token, reward_coins, duration, option::none());
@@ -96,8 +96,8 @@ module harvest::stake_lb_tests {
 
         // register staking pool 2 with rewards
         let collection_name_two = string::utf8(b"Liquidswap v1 #1 \"BTC\"-\"USDC\"-\"X25\"");
-        create_collection(signer::address_of(&collection_owner), collection_name_two);
-        let stake_token_two = create_token(&collection_owner, collection_name_two, string::utf8(b"LB2"));
+        create_st_collection(signer::address_of(&collection_owner), collection_name_two);
+        let stake_token_two = create_stake_token(&collection_owner, collection_name_two, string::utf8(b"LB2"));
         let reward_coins = mint_default_coin<StakeCoin>(15768000000000);
         let duration = 15768000;
         stake_lb::register_pool<StakeCoin>(&bob_acc, &stake_token_two, reward_coins, duration, option::none());
@@ -114,10 +114,10 @@ module harvest::stake_lb_tests {
 
         let alice_acc = new_account(@alice);
         let collection_name = string::utf8(b"Liquidswap v1 #1 \"CX\"-\"CY\"-\"X25\"");
-        create_collection(signer::address_of(&collection_owner), collection_name);
+        create_st_collection(signer::address_of(&collection_owner), collection_name);
 
         // register staking pool with rewards
-        let stake_token = create_token(&collection_owner, collection_name, string::utf8(b"LB"));
+        let stake_token = create_stake_token(&collection_owner, collection_name, string::utf8(b"LB"));
         let reward_coins = mint_default_coin<RewardCoin>(15768000000000);
         let duration = 15768000;
         stake_lb::register_pool<RewardCoin>(&harvest, &stake_token, reward_coins, duration, option::none());
@@ -170,10 +170,10 @@ module harvest::stake_lb_tests {
         let alice_acc = new_account(@alice);
         let bob_acc = new_account(@bob);
         let collection_name = string::utf8(b"Liquidswap v1 #1 \"CX\"-\"CY\"-\"X25\"");
-        create_collection(signer::address_of(&collection_owner), collection_name);
+        create_st_collection(signer::address_of(&collection_owner), collection_name);
 
         // register staking pool with rewards
-        let stake_token = create_token(&collection_owner, collection_name, string::utf8(b"LB"));
+        let stake_token = create_stake_token(&collection_owner, collection_name, string::utf8(b"LB"));
         let reward_coins = mint_default_coin<RewardCoin>(15768000000000);
         let duration = 15768000;
         stake_lb::register_pool<RewardCoin>(&harvest, &stake_token, reward_coins, duration, option::none());
@@ -244,10 +244,10 @@ module harvest::stake_lb_tests {
 
         let alice_acc = new_account(@alice);
         let collection_name = string::utf8(b"Liquidswap v1 #1 \"CX\"-\"CY\"-\"X25\"");
-        create_collection(signer::address_of(&collection_owner), collection_name);
+        create_st_collection(signer::address_of(&collection_owner), collection_name);
 
         // register staking pool with rewards
-        let stake_token = create_token(&collection_owner, collection_name, string::utf8(b"LB"));
+        let stake_token = create_stake_token(&collection_owner, collection_name, string::utf8(b"LB"));
         let reward_coins = mint_default_coin<RewardCoin>(15768000000000);
         let duration = 15768000;
         stake_lb::register_pool<RewardCoin>(&harvest, &stake_token, reward_coins, duration, option::none());
@@ -282,10 +282,10 @@ module harvest::stake_lb_tests {
         let alice_acc = new_account(@alice);
         let bob_acc = new_account(@bob);
         let collection_name = string::utf8(b"Liquidswap v1 #1 \"CX\"-\"CY\"-\"X25\"");
-        create_collection(signer::address_of(&collection_owner), collection_name);
+        create_st_collection(signer::address_of(&collection_owner), collection_name);
 
         // register staking pool with rewards
-        let stake_token = create_token(&collection_owner, collection_name, string::utf8(b"LB"));
+        let stake_token = create_stake_token(&collection_owner, collection_name, string::utf8(b"LB"));
         let reward_coins = mint_default_coin<RewardCoin>(15768000000000);
         let duration = 15768000;
         stake_lb::register_pool<RewardCoin>(&harvest, &stake_token, reward_coins, duration, option::none());
@@ -374,10 +374,10 @@ module harvest::stake_lb_tests {
 
         let alice_acc = new_account(@alice);
         let collection_name = string::utf8(b"Liquidswap v1 #1 \"CX\"-\"CY\"-\"X25\"");
-        create_collection(signer::address_of(&collection_owner), collection_name);
+        create_st_collection(signer::address_of(&collection_owner), collection_name);
 
         // register staking pool with rewards
-        let stake_token = create_token(&collection_owner, collection_name, string::utf8(b"LB"));
+        let stake_token = create_stake_token(&collection_owner, collection_name, string::utf8(b"LB"));
         let reward_coins = mint_default_coin<RewardCoin>(604805000000);
         let duration = 604805;
         let start_ts = timestamp::now_seconds();
@@ -405,10 +405,10 @@ module harvest::stake_lb_tests {
         let alice_acc = new_account(@alice);
         let bob_acc = new_account(@bob);
         let collection_name = string::utf8(b"Liquidswap v1 #1 \"CX\"-\"CY\"-\"X25\"");
-        create_collection(signer::address_of(&collection_owner), collection_name);
+        create_st_collection(signer::address_of(&collection_owner), collection_name);
 
         // register staking pool with rewards
-        let stake_token = create_token(&collection_owner, collection_name, string::utf8(b"LB"));
+        let stake_token = create_stake_token(&collection_owner, collection_name, string::utf8(b"LB"));
         let reward_coins = mint_default_coin<RewardCoin>(604805000000);
         let duration = 604805;
         stake_lb::register_pool<RewardCoin>(&harvest, &stake_token, reward_coins, duration, option::none());
@@ -466,10 +466,10 @@ module harvest::stake_lb_tests {
 
         let alice_acc = new_account(@alice);
         let collection_name = string::utf8(b"Liquidswap v1 #1 \"CX\"-\"CY\"-\"X25\"");
-        create_collection(signer::address_of(&collection_owner), collection_name);
+        create_st_collection(signer::address_of(&collection_owner), collection_name);
 
         // register staking pool with rewards
-        let stake_token = create_token(&collection_owner, collection_name, string::utf8(b"LB"));
+        let stake_token = create_stake_token(&collection_owner, collection_name, string::utf8(b"LB"));
         let reward_coins = mint_default_coin<RewardCoin>(604805000000);
         let duration = 3600;
         stake_lb::register_pool<RewardCoin>(&harvest, &stake_token, reward_coins, duration, option::none());
@@ -503,10 +503,10 @@ module harvest::stake_lb_tests {
 
         let alice_acc = new_account(@alice);
         let collection_name = string::utf8(b"Liquidswap v1 #1 \"CX\"-\"CY\"-\"X25\"");
-        create_collection(signer::address_of(&collection_owner), collection_name);
+        create_st_collection(signer::address_of(&collection_owner), collection_name);
 
         // register staking pool with rewards
-        let stake_token = create_token(&collection_owner, collection_name, string::utf8(b"LB"));
+        let stake_token = create_stake_token(&collection_owner, collection_name, string::utf8(b"LB"));
         let reward_coins = mint_default_coin<RewardCoin>(604805000000);
         let duration = 3600;
         stake_lb::register_pool<RewardCoin>(&harvest, &stake_token, reward_coins, duration, option::none());
@@ -533,10 +533,10 @@ module harvest::stake_lb_tests {
         let alice_acc = new_account_with_stake_coins(@alice, 900000000);
         let bob_acc = new_account_with_stake_coins(@bob, 99000000);
         let collection_name = string::utf8(b"Liquidswap v1 #1 \"CX\"-\"CY\"-\"X25\"");
-        create_collection(signer::address_of(&collection_owner), collection_name);
+        create_st_collection(signer::address_of(&collection_owner), collection_name);
 
         // register staking pool with rewards
-        let stake_token = create_token(&collection_owner, collection_name, string::utf8(b"LB"));
+        let stake_token = create_stake_token(&collection_owner, collection_name, string::utf8(b"LB"));
         let reward_coins = mint_default_coin<RewardCoin>(157680000000000);
         let duration = 15768000;
         stake_lb::register_pool<RewardCoin>(&harvest, &stake_token, reward_coins, duration, option::none());
@@ -701,10 +701,10 @@ module harvest::stake_lb_tests {
 
         let alice_acc = new_account(@alice);
         let collection_name = string::utf8(b"Liquidswap v1 #1 \"CX\"-\"CY\"-\"X25\"");
-        create_collection(signer::address_of(&collection_owner), collection_name);
+        create_st_collection(signer::address_of(&collection_owner), collection_name);
 
         // register staking pool with rewards
-        let stake_token = create_token(&collection_owner, collection_name, string::utf8(b"LB"));
+        let stake_token = create_stake_token(&collection_owner, collection_name, string::utf8(b"LB"));
         let reward_coins = mint_default_coin<RewardCoin>(157680000000000);
         let duration = 15768000;
         stake_lb::register_pool<RewardCoin>(&harvest, &stake_token, reward_coins, duration, option::none());
@@ -829,13 +829,13 @@ module harvest::stake_lb_tests {
         let alice_acc = new_account(@alice);
         let bob_acc = new_account(@bob);
         let collection_name = string::utf8(b"Liquidswap v1 #1 \"CX\"-\"CY\"-\"X25\"");
-        create_collection(signer::address_of(&collection_owner), collection_name);
+        create_st_collection(signer::address_of(&collection_owner), collection_name);
 
         coin::register<RewardCoin>(&alice_acc);
         coin::register<RewardCoin>(&bob_acc);
 
         // register staking pool with rewards
-        let stake_token = create_token(&collection_owner, collection_name, string::utf8(b"LB"));
+        let stake_token = create_stake_token(&collection_owner, collection_name, string::utf8(b"LB"));
         let reward_coins = mint_default_coin<RewardCoin>(157680000000000);
         let duration = 15768000;
         stake_lb::register_pool<RewardCoin>(&harvest, &stake_token, reward_coins, duration, option::none());
@@ -920,12 +920,12 @@ module harvest::stake_lb_tests {
 
         let alice_acc = new_account(@alice);
         let collection_name = string::utf8(b"Liquidswap v1 #1 \"CX\"-\"CY\"-\"X25\"");
-        create_collection(signer::address_of(&collection_owner), collection_name);
+        create_st_collection(signer::address_of(&collection_owner), collection_name);
 
         coin::register<RewardCoin>(&alice_acc);
 
         // register staking pool with rewards
-        let stake_token = create_token(&collection_owner, collection_name, string::utf8(b"LB"));
+        let stake_token = create_stake_token(&collection_owner, collection_name, string::utf8(b"LB"));
         let reward_coins = mint_default_coin<RewardCoin>(157680000000000);
         let duration = 15768000;
         stake_lb::register_pool<RewardCoin>(&harvest, &stake_token, reward_coins, duration, option::none());
@@ -963,12 +963,12 @@ module harvest::stake_lb_tests {
         let alice_acc = new_account(@alice);
         let bob_acc = new_account(@bob);
         let collection_name = string::utf8(b"Liquidswap v1 #1 \"CX\"-\"CY\"-\"X25\"");
-        create_collection(signer::address_of(&collection_owner), collection_name);
+        create_st_collection(signer::address_of(&collection_owner), collection_name);
 
         coin::register<RewardCoin>(&alice_acc);
         coin::register<RewardCoin>(&bob_acc);
 
-        let stake_token = create_token(&collection_owner, collection_name, string::utf8(b"LB"));
+        let stake_token = create_stake_token(&collection_owner, collection_name, string::utf8(b"LB"));
         let reward_coins = mint_default_coin<RewardCoin>(302400000000);
         let duration = 302400;
         stake_lb::register_pool<RewardCoin>(&harvest, &stake_token, reward_coins, duration, option::none());
@@ -1030,13 +1030,13 @@ module harvest::stake_lb_tests {
         // 100b of coins.
         let bob_acc = new_account(@bob);
         let collection_name = string::utf8(b"Liquidswap v1 #1 \"CX\"-\"CY\"-\"X25\"");
-        create_collection(signer::address_of(&collection_owner), collection_name);
+        create_st_collection(signer::address_of(&collection_owner), collection_name);
 
         coin::register<RewardCoin>(&alice_acc);
         coin::register<RewardCoin>(&bob_acc);
 
         // 1000b of coins
-        let stake_token = create_token(&collection_owner, collection_name, string::utf8(b"LB"));
+        let stake_token = create_stake_token(&collection_owner, collection_name, string::utf8(b"LB"));
         let reward_coins = mint_default_coin<RewardCoin>(1000000000000000000);
         // 1 week.
         let duration = WEEK_IN_SECONDS;
@@ -1101,13 +1101,13 @@ module harvest::stake_lb_tests {
         // 100b of coins.
         let bob_acc = new_account(@bob);
         let collection_name = string::utf8(b"Liquidswap v1 #1 \"CX\"-\"CY\"-\"X25\"");
-        create_collection(signer::address_of(&collection_owner), collection_name);
+        create_st_collection(signer::address_of(&collection_owner), collection_name);
 
         coin::register<RewardCoin>(&alice_acc);
         coin::register<RewardCoin>(&bob_acc);
 
         // 1000b of coins
-        let stake_token = create_token(&collection_owner, collection_name, string::utf8(b"LB"));
+        let stake_token = create_stake_token(&collection_owner, collection_name, string::utf8(b"LB"));
         let reward_coins = mint_default_coin<RewardCoin>(1000000000000000000);
         // 10 years.
         let duration = 31536000 * 10;
@@ -1158,12 +1158,12 @@ module harvest::stake_lb_tests {
 
         let alice_acc = new_account(@alice);
         let collection_name = string::utf8(b"Liquidswap v1 #1 \"CX\"-\"CY\"-\"X25\"");
-        create_collection(signer::address_of(&collection_owner), collection_name);
+        create_st_collection(signer::address_of(&collection_owner), collection_name);
 
         coin::register<RewardCoin>(&alice_acc);
 
         // register staking pool with rewards
-        let stake_token = create_token(&collection_owner, collection_name, string::utf8(b"LB"));
+        let stake_token = create_stake_token(&collection_owner, collection_name, string::utf8(b"LB"));
         let reward_coins = mint_default_coin<RewardCoin>(157680000000000);
         let duration = 15768000;
         stake_lb::register_pool<RewardCoin>(&harvest, &stake_token, reward_coins, duration, option::none());
@@ -1205,12 +1205,12 @@ module harvest::stake_lb_tests {
 
         let alice_acc = new_account(@alice);
         let collection_name = string::utf8(b"Liquidswap v1 #1 \"CX\"-\"CY\"-\"X25\"");
-        create_collection(signer::address_of(&collection_owner), collection_name);
+        create_st_collection(signer::address_of(&collection_owner), collection_name);
 
         coin::register<RewardCoin>(&alice_acc);
 
         // register staking pool with rewards
-        let stake_token = create_token(&collection_owner, collection_name, string::utf8(b"LB"));
+        let stake_token = create_stake_token(&collection_owner, collection_name, string::utf8(b"LB"));
         let reward_coins_val = 157680000000000;
         let reward_coins = mint_default_coin<RewardCoin>(reward_coins_val);
         let duration = 15768000;
@@ -1248,11 +1248,11 @@ module harvest::stake_lb_tests {
 
         let alice_acc = new_account(@alice);
         let collection_name = string::utf8(b"Liquidswap v1 #1 \"CX\"-\"CY\"-\"X25\"");
-        create_collection(signer::address_of(&collection_owner), collection_name);
+        create_st_collection(signer::address_of(&collection_owner), collection_name);
 
         coin::register<RewardCoin>(&alice_acc);
 
-        let stake_token = create_token(&collection_owner, collection_name, string::utf8(b"LB"));
+        let stake_token = create_stake_token(&collection_owner, collection_name, string::utf8(b"LB"));
         let reward_coins = mint_default_coin<RewardCoin>(157680000000000);
         let duration = 15768000;
         stake_lb::register_pool<RewardCoin>(&harvest, &stake_token, reward_coins, duration, option::none());
@@ -1314,14 +1314,14 @@ module harvest::stake_lb_tests {
     public fun test_pool_exists() {
         let (harvest, _, collection_owner) = initialize_test();
         let collection_name = string::utf8(b"Liquidswap v1 #1 \"CX\"-\"CY\"-\"X25\"");
-        create_collection(signer::address_of(&collection_owner), collection_name);
+        create_st_collection(signer::address_of(&collection_owner), collection_name);
 
         // check pool exists before register
         let exists = stake_lb::pool_exists<RewardCoin>(@harvest, collection_name);
         assert!(!exists, 1);
 
         // register staking pool with rewards
-        let stake_token = create_token(&collection_owner, collection_name, string::utf8(b"LB"));
+        let stake_token = create_stake_token(&collection_owner, collection_name, string::utf8(b"LB"));
         let reward_coins = mint_default_coin<RewardCoin>(12345);
         let duration = 12345;
         stake_lb::register_pool<RewardCoin>(&harvest, &stake_token, reward_coins, duration, option::none());
@@ -1338,10 +1338,10 @@ module harvest::stake_lb_tests {
 
         let alice_acc = new_account(@alice);
         let collection_name = string::utf8(b"Liquidswap v1 #1 \"CX\"-\"CY\"-\"X25\"");
-        create_collection(signer::address_of(&collection_owner), collection_name);
+        create_st_collection(signer::address_of(&collection_owner), collection_name);
 
         // register staking pool with rewards
-        let stake_token = create_token(&collection_owner, collection_name, string::utf8(b"LB"));
+        let stake_token = create_stake_token(&collection_owner, collection_name, string::utf8(b"LB"));
         let reward_coins = mint_default_coin<RewardCoin>(12345);
         let duration = 12345;
         stake_lb::register_pool<RewardCoin>(&harvest, &stake_token, reward_coins, duration, option::none());
@@ -1374,10 +1374,10 @@ module harvest::stake_lb_tests {
 
         let alice_acc = new_account(@alice);
         let collection_name = string::utf8(b"Liquidswap v1 #1 \"CX\"-\"CY\"-\"X25\"");
-        create_collection(signer::address_of(&collection_owner), collection_name);
+        create_st_collection(signer::address_of(&collection_owner), collection_name);
 
         // register staking pool with rewards
-        let stake_token = create_token(&collection_owner, collection_name, string::utf8(b"LB"));
+        let stake_token = create_stake_token(&collection_owner, collection_name, string::utf8(b"LB"));
         let reward_coins = mint_default_coin<RewardCoin>(12345);
         let duration = 12345;
         stake_lb::register_pool<RewardCoin>(&harvest, &stake_token, reward_coins, duration, option::none());
@@ -1425,12 +1425,12 @@ module harvest::stake_lb_tests {
 
         let alice_acc = new_account(@alice);
         let collection_name = string::utf8(b"Liquidswap v1 #1 \"CX\"-\"CY\"-\"X25\"");
-        create_collection(signer::address_of(&collection_owner), collection_name);
+        create_st_collection(signer::address_of(&collection_owner), collection_name);
 
         coin::register<RewardCoin>(&alice_acc);
 
         // register staking pool with rewards
-        let stake_token = create_token(&collection_owner, collection_name, string::utf8(b"LB"));
+        let stake_token = create_stake_token(&collection_owner, collection_name, string::utf8(b"LB"));
         let reward_coins = mint_default_coin<RewardCoin>(15768000000000);
         let duration = 15768000;
         stake_lb::register_pool<RewardCoin>(&harvest, &stake_token, reward_coins, duration, option::none());
@@ -1490,10 +1490,10 @@ module harvest::stake_lb_tests {
         let (harvest, _, collection_owner) = initialize_test();
 
         let collection_name = string::utf8(b"Liquidswap v1 #1 \"CX\"-\"CY\"-\"X25\"");
-        create_collection(signer::address_of(&collection_owner), collection_name);
+        create_st_collection(signer::address_of(&collection_owner), collection_name);
 
         // register staking pool with rewards
-        let stake_token = create_token(&collection_owner, collection_name, string::utf8(b"LB"));
+        let stake_token = create_stake_token(&collection_owner, collection_name, string::utf8(b"LB"));
         let reward_coins = mint_default_coin<RewardCoin>(15768000000000);
         let duration = 15768000;
         stake_lb::register_pool<RewardCoin>(&harvest, &stake_token, reward_coins, duration, option::none());
@@ -1520,10 +1520,10 @@ module harvest::stake_lb_tests {
     public fun test_get_end_timestamp() {
         let (harvest, _, collection_owner) = initialize_test();
         let collection_name = string::utf8(b"Liquidswap v1 #1 \"CX\"-\"CY\"-\"X25\"");
-        create_collection(signer::address_of(&collection_owner), collection_name);
+        create_st_collection(signer::address_of(&collection_owner), collection_name);
 
         // register staking pool with rewards
-        let stake_token = create_token(&collection_owner, collection_name, string::utf8(b"LB"));
+        let stake_token = create_stake_token(&collection_owner, collection_name, string::utf8(b"LB"));
         let reward_coins = mint_default_coin<RewardCoin>(15768000000000);
         let duration = 15768000;
         stake_lb::register_pool<RewardCoin>(&harvest, &stake_token, reward_coins, duration, option::none());
@@ -1562,10 +1562,10 @@ module harvest::stake_lb_tests {
         let collection_owner = new_account(@liquidswap_v1_resource_account);
 
         let collection_name = string::utf8(b"Liquidswap v1 #1 \"CX\"-\"CY\"-\"X25\"");
-        create_collection(signer::address_of(&collection_owner), collection_name);
+        create_st_collection(signer::address_of(&collection_owner), collection_name);
 
         // mint stake coins
-        let stake_token = create_token(&collection_owner, collection_name, string::utf8(b"LB"));
+        let stake_token = create_stake_token(&collection_owner, collection_name, string::utf8(b"LB"));
 
         // stake when no pool
         stake_lb::stake<RewardCoin>(&harvest, @harvest, stake_token);
@@ -1651,10 +1651,10 @@ module harvest::stake_lb_tests {
         let collection_owner = new_account(@liquidswap_v1_resource_account);
         let alice_acc = new_account(@alice);
         let collection_name = string::utf8(b"Liquidswap v1 #1 \"CX\"-\"CY\"-\"X25\"");
-        create_collection(signer::address_of(&collection_owner), collection_name);
+        create_st_collection(signer::address_of(&collection_owner), collection_name);
 
         // get reward coins
-        let stake_token = create_token(&collection_owner, collection_name, string::utf8(b"LB"));
+        let stake_token = create_stake_token(&collection_owner, collection_name, string::utf8(b"LB"));
         let reward_coins_1 = mint_default_coin<RewardCoin>(12345);
         let reward_coins_2 = mint_default_coin<RewardCoin>(12345);
 
@@ -1670,10 +1670,10 @@ module harvest::stake_lb_tests {
     public fun test_register_fails_if_reward_is_zero() {
         let (harvest, _, collection_owner) = initialize_test();
         let collection_name = string::utf8(b"Liquidswap v1 #1 \"CX\"-\"CY\"-\"X25\"");
-        create_collection(signer::address_of(&collection_owner), collection_name);
+        create_st_collection(signer::address_of(&collection_owner), collection_name);
 
         // register staking pool with rewards
-        let stake_token = create_token(&collection_owner, collection_name, string::utf8(b"LB"));
+        let stake_token = create_stake_token(&collection_owner, collection_name, string::utf8(b"LB"));
         let reward_coins = coin::zero<RewardCoin>();
         let duration = 12345;
         stake_lb::register_pool<RewardCoin>(&harvest, &stake_token, reward_coins, duration, option::none());
@@ -1687,10 +1687,10 @@ module harvest::stake_lb_tests {
         let (harvest, _, collection_owner) = initialize_test();
 
         let collection_name = string::utf8(b"Liquidswap v1 #1 \"CX\"-\"CY\"-\"X25\"");
-        create_collection(signer::address_of(&collection_owner), collection_name);
+        create_st_collection(signer::address_of(&collection_owner), collection_name);
 
         // register staking pool with rewards
-        let stake_token = create_token(&collection_owner, collection_name, string::utf8(b"LB"));
+        let stake_token = create_stake_token(&collection_owner, collection_name, string::utf8(b"LB"));
         let reward_coins = mint_default_coin<RewardCoin>(12345);
         let duration = 12345;
         stake_lb::register_pool<RewardCoin>(&harvest, &stake_token, reward_coins, duration, option::none());
@@ -1706,10 +1706,10 @@ module harvest::stake_lb_tests {
         let (harvest, _, collection_owner) = initialize_test();
 
         let collection_name = string::utf8(b"Liquidswap v1 #1 \"CX\"-\"CY\"-\"X25\"");
-        create_collection(signer::address_of(&collection_owner), collection_name);
+        create_st_collection(signer::address_of(&collection_owner), collection_name);
 
         // register staking pool with rewards
-        let stake_token = create_token(&collection_owner, collection_name, string::utf8(b"LB"));
+        let stake_token = create_stake_token(&collection_owner, collection_name, string::utf8(b"LB"));
         let reward_coins = mint_default_coin<RewardCoin>(12345);
         let duration = 12345;
         stake_lb::register_pool<RewardCoin>(&harvest, &stake_token, reward_coins, duration, option::none());
@@ -1725,10 +1725,10 @@ module harvest::stake_lb_tests {
         let (harvest, _, collection_owner) = initialize_test();
 
         let collection_name = string::utf8(b"Liquidswap v1 #1 \"CX\"-\"CY\"-\"X25\"");
-        create_collection(signer::address_of(&collection_owner), collection_name);
+        create_st_collection(signer::address_of(&collection_owner), collection_name);
 
         // register staking pool with rewards
-        let stake_token = create_token(&collection_owner, collection_name, string::utf8(b"LB"));
+        let stake_token = create_stake_token(&collection_owner, collection_name, string::utf8(b"LB"));
         let reward_coins = mint_default_coin<RewardCoin>(12345);
         let duration = 12345;
         stake_lb::register_pool<RewardCoin>(&harvest, &stake_token, reward_coins, duration, option::none());
@@ -1744,10 +1744,10 @@ module harvest::stake_lb_tests {
         let (harvest, _, collection_owner) = initialize_test();
 
         let collection_name = string::utf8(b"Liquidswap v1 #1 \"CX\"-\"CY\"-\"X25\"");
-        create_collection(signer::address_of(&collection_owner), collection_name);
+        create_st_collection(signer::address_of(&collection_owner), collection_name);
 
         // register staking pool with rewards
-        let stake_token = create_token(&collection_owner, collection_name, string::utf8(b"LB"));
+        let stake_token = create_stake_token(&collection_owner, collection_name, string::utf8(b"LB"));
         let reward_coins = mint_default_coin<RewardCoin>(12345);
         let duration = 12345;
         stake_lb::register_pool<RewardCoin>(&harvest, &stake_token, reward_coins, duration, option::none());
@@ -1763,10 +1763,10 @@ module harvest::stake_lb_tests {
         let (harvest, _, collection_owner) = initialize_test();
 
         let collection_name = string::utf8(b"Liquidswap v1 #1 \"CX\"-\"CY\"-\"X25\"");
-        create_collection(signer::address_of(&collection_owner), collection_name);
+        create_st_collection(signer::address_of(&collection_owner), collection_name);
 
         // register staking pool with rewards
-        let stake_token = create_token(&collection_owner, collection_name, string::utf8(b"LB"));
+        let stake_token = create_stake_token(&collection_owner, collection_name, string::utf8(b"LB"));
         let reward_coins = mint_default_coin<RewardCoin>(12345);
         let duration = 12345;
         stake_lb::register_pool<RewardCoin>(&harvest, &stake_token, reward_coins, duration, option::none());
@@ -1785,10 +1785,10 @@ module harvest::stake_lb_tests {
         let (harvest, _, collection_owner) = initialize_test();
 
         let collection_name = string::utf8(b"Liquidswap v1 #1 \"CX\"-\"CY\"-\"X25\"");
-        create_collection(signer::address_of(&collection_owner), collection_name);
+        create_st_collection(signer::address_of(&collection_owner), collection_name);
 
         // register staking pool with rewards
-        let stake_token = create_token(&collection_owner, collection_name, string::utf8(b"LB"));
+        let stake_token = create_stake_token(&collection_owner, collection_name, string::utf8(b"LB"));
         let reward_coins = mint_default_coin<RewardCoin>(12345);
         let duration = 12345;
         stake_lb::register_pool<RewardCoin>(&harvest, &stake_token, reward_coins, duration, option::none());
@@ -1808,10 +1808,10 @@ module harvest::stake_lb_tests {
 
         let alice_acc = new_account(@alice);
         let collection_name = string::utf8(b"Liquidswap v1 #1 \"CX\"-\"CY\"-\"X25\"");
-        create_collection(signer::address_of(&collection_owner), collection_name);
+        create_st_collection(signer::address_of(&collection_owner), collection_name);
 
         // register staking pool with rewards
-        let stake_token = create_token(&collection_owner, collection_name, string::utf8(b"LB"));
+        let stake_token = create_stake_token(&collection_owner, collection_name, string::utf8(b"LB"));
         let reward_coins = mint_default_coin<RewardCoin>(12345);
         let duration = 12345;
         stake_lb::register_pool<RewardCoin>(&harvest, &stake_token, reward_coins, duration, option::none());
@@ -1874,10 +1874,10 @@ module harvest::stake_lb_tests {
         let (harvest, _, collection_owner) = initialize_test();
 
         let collection_name = string::utf8(b"Liquidswap v1 #1 \"CX\"-\"CY\"-\"X25\"");
-        create_collection(signer::address_of(&collection_owner), collection_name);
+        create_st_collection(signer::address_of(&collection_owner), collection_name);
 
         // register staking pool with rewards
-        let stake_token = create_token(&collection_owner, collection_name, string::utf8(b"LB"));
+        let stake_token = create_stake_token(&collection_owner, collection_name, string::utf8(b"LB"));
         let reward_coins = mint_default_coin<RewardCoin>(12345);
         let duration = 12345;
         stake_lb::register_pool<RewardCoin>(&harvest, &stake_token, reward_coins, duration, option::none());
@@ -1896,10 +1896,10 @@ module harvest::stake_lb_tests {
         let (harvest, _, collection_owner) = initialize_test();
 
         let collection_name = string::utf8(b"Liquidswap v1 #1 \"CX\"-\"CY\"-\"X25\"");
-        create_collection(signer::address_of(&collection_owner), collection_name);
+        create_st_collection(signer::address_of(&collection_owner), collection_name);
 
         // register staking pool with rewards
-        let stake_token = create_token(&collection_owner, collection_name, string::utf8(b"LB"));
+        let stake_token = create_stake_token(&collection_owner, collection_name, string::utf8(b"LB"));
         let reward_coins = mint_default_coin<RewardCoin>(12345);
         let duration = 12345;
         stake_lb::register_pool<RewardCoin>(&harvest, &stake_token, reward_coins, duration, option::none());
@@ -1918,12 +1918,12 @@ module harvest::stake_lb_tests {
 
         let alice_acc = new_account(@alice);
         let collection_name = string::utf8(b"Liquidswap v1 #1 \"CX\"-\"CY\"-\"X25\"");
-        create_collection(signer::address_of(&collection_owner), collection_name);
+        create_st_collection(signer::address_of(&collection_owner), collection_name);
 
         coin::register<RewardCoin>(&alice_acc);
 
         // register staking pool with rewards
-        let stake_token = create_token(&collection_owner, collection_name, string::utf8(b"LB"));
+        let stake_token = create_stake_token(&collection_owner, collection_name, string::utf8(b"LB"));
         let reward_coins = mint_default_coin<RewardCoin>(12345);
         let duration = 12345;
         stake_lb::register_pool<RewardCoin>(&harvest, &stake_token, reward_coins, duration, option::none());
@@ -1954,12 +1954,12 @@ module harvest::stake_lb_tests {
 
         let alice_acc = new_account(@alice);
         let collection_name = string::utf8(b"Liquidswap v1 #1 \"CX\"-\"CY\"-\"X25\"");
-        create_collection(signer::address_of(&collection_owner), collection_name);
+        create_st_collection(signer::address_of(&collection_owner), collection_name);
 
         coin::register<RewardCoin>(&alice_acc);
 
         // register staking pool with rewards
-        let stake_token = create_token(&collection_owner, collection_name, string::utf8(b"LB"));
+        let stake_token = create_stake_token(&collection_owner, collection_name, string::utf8(b"LB"));
         let reward_coins = mint_default_coin<RewardCoin>(12345);
         let duration = 12345;
         stake_lb::register_pool<RewardCoin>(&harvest, &stake_token, reward_coins, duration, option::none());
@@ -2019,13 +2019,13 @@ module harvest::stake_lb_tests {
         let harvest = new_account(@harvest);
         let collection_owner = new_account(@liquidswap_v1_resource_account);
         let collection_name = string::utf8(b"Liquidswap v1 #1 \"CX\"-\"CY\"-\"X25\"");
-        create_collection(signer::address_of(&collection_owner), collection_name);
+        create_st_collection(signer::address_of(&collection_owner), collection_name);
 
         // create only stake coin
         initialize_stake_coin(&harvest, 6);
 
         // register staking pool with rewards
-        let stake_token = create_token(&collection_owner, collection_name, string::utf8(b"LB"));
+        let stake_token = create_stake_token(&collection_owner, collection_name, string::utf8(b"LB"));
         let reward_coins = coin::zero<RewardCoin>();
         let duration = 12345;
         stake_lb::register_pool<RewardCoin>(&harvest, &stake_token, reward_coins, duration, option::none());
@@ -2040,10 +2040,10 @@ module harvest::stake_lb_tests {
 
         let alice_acc = new_account(@alice);
         let collection_name = string::utf8(b"Liquidswap v1 #1 \"CX\"-\"CY\"-\"X25\"");
-        create_collection(signer::address_of(&collection_owner), collection_name);
+        create_st_collection(signer::address_of(&collection_owner), collection_name);
 
         // register staking pool with rewards
-        let stake_token = create_token(&collection_owner, collection_name, string::utf8(b"LB"));
+        let stake_token = create_stake_token(&collection_owner, collection_name, string::utf8(b"LB"));
         let reward_coins = mint_default_coin<RewardCoin>(15768000000000);
         let duration = 15768000;
         stake_lb::register_pool<RewardCoin>(&harvest, &stake_token, reward_coins, duration, option::none());
@@ -2076,10 +2076,10 @@ module harvest::stake_lb_tests {
         let (harvest, _, collection_owner) = initialize_test();
 
         let collection_name = string::utf8(b"Liquidswap v1 #1 \"CX\"-\"CY\"-\"X25\"");
-        create_collection(signer::address_of(&collection_owner), collection_name);
+        create_st_collection(signer::address_of(&collection_owner), collection_name);
 
         // register staking pool with rewards
-        let stake_token = create_token(&collection_owner, collection_name, string::utf8(b"LB"));
+        let stake_token = create_stake_token(&collection_owner, collection_name, string::utf8(b"LB"));
         let reward_coins = mint_default_coin<RewardCoin>(12345);
         let duration = 0;
         stake_lb::register_pool<RewardCoin>(&harvest, &stake_token, reward_coins, duration, option::none());
@@ -2093,10 +2093,10 @@ module harvest::stake_lb_tests {
         let (harvest, _, collection_owner) = initialize_test();
 
         let collection_name = string::utf8(b"Liquidswap v1 #1 \"CX\"-\"CY\"-\"X25\"");
-        create_collection(signer::address_of(&collection_owner), collection_name);
+        create_st_collection(signer::address_of(&collection_owner), collection_name);
 
         // register staking pool with rewards
-        let stake_token = create_token(&collection_owner, collection_name, string::utf8(b"LB"));
+        let stake_token = create_stake_token(&collection_owner, collection_name, string::utf8(b"LB"));
         let reward_coins = mint_default_coin<RewardCoin>(15768000000000);
         let duration = 15768000;
         stake_lb::register_pool<RewardCoin>(&harvest, &stake_token, reward_coins, duration, option::none());
@@ -2114,10 +2114,10 @@ module harvest::stake_lb_tests {
         let (harvest, _, collection_owner) = initialize_test();
 
         let collection_name = string::utf8(b"Liquidswap v1 #1 \"CX\"-\"CY\"-\"X25\"");
-        create_collection(signer::address_of(&collection_owner), collection_name);
+        create_st_collection(signer::address_of(&collection_owner), collection_name);
 
         // register staking pool with rewards
-        let stake_token = create_token(&collection_owner, collection_name, string::utf8(b"LB"));
+        let stake_token = create_stake_token(&collection_owner, collection_name, string::utf8(b"LB"));
         let reward_coins = mint_default_coin<RewardCoin>(15768000000000);
         let duration = 15768000;
         stake_lb::register_pool<RewardCoin>(&harvest, &stake_token, reward_coins, duration, option::none());
@@ -2139,11 +2139,11 @@ module harvest::stake_lb_tests {
 
         let alice_acc = new_account(@alice);
         let collection_name = string::utf8(b"Liquidswap v1 #1 \"CX\"-\"CY\"-\"X25\"");
-        create_collection(signer::address_of(&collection_owner), collection_name);
+        create_st_collection(signer::address_of(&collection_owner), collection_name);
 
         // register staking pool with rewards
         let reward_coins = mint_default_coin<RewardCoin>(15768000000000);
-        let stake_token = create_token(&collection_owner, collection_name, string::utf8(b"LB"));
+        let stake_token = create_stake_token(&collection_owner, collection_name, string::utf8(b"LB"));
         let duration = 15768000;
         stake_lb::register_pool<RewardCoin>(&harvest, &stake_token, reward_coins, duration, option::none());
 
@@ -2192,10 +2192,10 @@ module harvest::stake_lb_tests {
         let treasury = new_account(@treasury);
 
         let collection_name = string::utf8(b"Liquidswap v1 #1 \"CX\"-\"CY\"-\"X25\"");
-        create_collection(signer::address_of(&collection_owner), collection_name);
+        create_st_collection(signer::address_of(&collection_owner), collection_name);
 
         // register staking pool with rewards
-        let stake_token = create_token(&collection_owner, collection_name, string::utf8(b"LB"));
+        let stake_token = create_stake_token(&collection_owner, collection_name, string::utf8(b"LB"));
         let reward_coins = mint_default_coin<RewardCoin>(157680000000000);
         let duration = 15768000;
         stake_lb::register_pool<RewardCoin>(&harvest, &stake_token, reward_coins, duration, option::none());
@@ -2217,10 +2217,10 @@ module harvest::stake_lb_tests {
         let (harvest, emergency, collection_owner) = initialize_test();
 
         let collection_name = string::utf8(b"Liquidswap v1 #1 \"CX\"-\"CY\"-\"X25\"");
-        create_collection(signer::address_of(&collection_owner), collection_name);
+        create_st_collection(signer::address_of(&collection_owner), collection_name);
 
         // register staking pool with rewards
-        let stake_token = create_token(&collection_owner, collection_name, string::utf8(b"LB"));
+        let stake_token = create_stake_token(&collection_owner, collection_name, string::utf8(b"LB"));
         let reward_coins = mint_default_coin<RewardCoin>(157680000000000);
         let duration = 15768000;
         stake_lb::register_pool<RewardCoin>(&harvest, &stake_token, reward_coins, duration, option::none());
@@ -2244,10 +2244,10 @@ module harvest::stake_lb_tests {
 
         let treasury = new_account(@treasury);
         let collection_name = string::utf8(b"Liquidswap v1 #1 \"CX\"-\"CY\"-\"X25\"");
-        create_collection(signer::address_of(&collection_owner), collection_name);
+        create_st_collection(signer::address_of(&collection_owner), collection_name);
 
         // register staking pool with rewards
-        let stake_token = create_token(&collection_owner, collection_name, string::utf8(b"LB"));
+        let stake_token = create_stake_token(&collection_owner, collection_name, string::utf8(b"LB"));
         let reward_coins = mint_default_coin<RewardCoin>(157680000000000);
         let duration = 15768000;
         stake_lb::register_pool<RewardCoin>(&harvest, &stake_token, reward_coins, duration, option::none());
@@ -2272,10 +2272,10 @@ module harvest::stake_lb_tests {
         let (harvest, _, collection_owner) = initialize_test();
         let treasury = new_account(@treasury);
         let collection_name = string::utf8(b"Liquidswap v1 #1 \"CX\"-\"CY\"-\"X25\"");
-        create_collection(signer::address_of(&collection_owner), collection_name);
+        create_st_collection(signer::address_of(&collection_owner), collection_name);
 
         // register staking pool with rewards
-        let stake_token = create_token(&collection_owner, collection_name, string::utf8(b"LB"));
+        let stake_token = create_stake_token(&collection_owner, collection_name, string::utf8(b"LB"));
         let reward_coins = mint_default_coin<RewardCoin>(157680000000000);
         let duration = 15768000;
         stake_lb::register_pool<RewardCoin>(&harvest, &stake_token, reward_coins, duration, option::none());
@@ -2300,10 +2300,10 @@ module harvest::stake_lb_tests {
         let (harvest, emergency, collection_owner) = initialize_test();
         let treasury = new_account(@treasury);
         let collection_name = string::utf8(b"Liquidswap v1 #1 \"CX\"-\"CY\"-\"X25\"");
-        create_collection(signer::address_of(&collection_owner), collection_name);
+        create_st_collection(signer::address_of(&collection_owner), collection_name);
 
         // register staking pool with rewards
-        let stake_token = create_token(&collection_owner, collection_name, string::utf8(b"LB"));
+        let stake_token = create_stake_token(&collection_owner, collection_name, string::utf8(b"LB"));
         let reward_coins = mint_default_coin<RewardCoin>(157680000000000);
         let duration = 15768000;
         stake_lb::register_pool<RewardCoin>(&harvest, &stake_token, reward_coins, duration, option::none());
@@ -2330,10 +2330,10 @@ module harvest::stake_lb_tests {
         let (harvest, _, collection_owner) = initialize_test();
         let treasury = new_account(@treasury);
         let collection_name = string::utf8(b"Liquidswap v1 #1 \"CX\"-\"CY\"-\"X25\"");
-        create_collection(signer::address_of(&collection_owner), collection_name);
+        create_st_collection(signer::address_of(&collection_owner), collection_name);
 
         // register staking pool with rewards
-        let stake_token = create_token(&collection_owner, collection_name, string::utf8(b"LB"));
+        let stake_token = create_stake_token(&collection_owner, collection_name, string::utf8(b"LB"));
         let reward_coins = mint_default_coin<RewardCoin>(157680000000000);
         let duration = 15768000;
         stake_lb::register_pool<RewardCoin>(&harvest, &stake_token, reward_coins, duration, option::none());
@@ -2360,13 +2360,13 @@ module harvest::stake_lb_tests {
         let alice_acc = new_account(@alice);
         let bob_acc = new_account(@bob);
         let collection_name = string::utf8(b"Liquidswap v1 #1 \"CX\"-\"CY\"-\"X25\"");
-        create_collection(signer::address_of(&collection_owner), collection_name);
+        create_st_collection(signer::address_of(&collection_owner), collection_name);
 
         coin::register<RewardCoin>(&alice_acc);
         coin::register<RewardCoin>(&bob_acc);
 
         // register staking pool with rewards
-        let stake_token = create_token(&collection_owner, collection_name, string::utf8(b"LB"));
+        let stake_token = create_stake_token(&collection_owner, collection_name, string::utf8(b"LB"));
         let reward_coins = mint_default_coin<RewardCoin>(15768000000000);
         let duration = 15768000;
         stake_lb::register_pool<RewardCoin>(&harvest, &stake_token, reward_coins, duration, option::none());
@@ -2420,12 +2420,12 @@ module harvest::stake_lb_tests {
         let alice_acc = new_account(@alice);
         let bob_acc = new_account(@bob);
         let collection_name = string::utf8(b"Liquidswap v1 #1 \"CX\"-\"CY\"-\"X25\"");
-        create_collection(signer::address_of(&collection_owner), collection_name);
+        create_st_collection(signer::address_of(&collection_owner), collection_name);
 
         coin::register<RewardCoin>(&alice_acc);
         coin::register<RewardCoin>(&bob_acc);
 
-        let stake_token = create_token(&collection_owner, collection_name, string::utf8(b"LB"));
+        let stake_token = create_stake_token(&collection_owner, collection_name, string::utf8(b"LB"));
         let reward_coins = mint_default_coin<RewardCoin>(15768000000000);
         let duration = 15768000;
         stake_lb::register_pool<RewardCoin>(&harvest, &stake_token, reward_coins, duration, option::none());
@@ -2490,11 +2490,11 @@ module harvest::stake_lb_tests {
         let duration = 7890000;
         let alice_acc = new_account(@alice);
         let collection_name = string::utf8(b"Liquidswap v1 #1 \"CX\"-\"CY\"-\"X25\"");
-        create_collection(signer::address_of(&collection_owner), collection_name);
+        create_st_collection(signer::address_of(&collection_owner), collection_name);
 
         coin::register<RewardCoin>(&alice_acc);
 
-        let stake_token = create_token(&collection_owner, collection_name, string::utf8(b"LB"));
+        let stake_token = create_stake_token(&collection_owner, collection_name, string::utf8(b"LB"));
         let reward_coins = mint_default_coin<RewardCoin>(606000000000);
         stake_lb::register_pool<RewardCoin>(&harvest, &stake_token, reward_coins, duration, option::none());
 

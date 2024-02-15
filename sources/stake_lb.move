@@ -243,7 +243,7 @@ module harvest::stake_lb {
         let end_timestamp = current_time + duration;
 
         let origin_decimals = (coin::decimals<R>() as u128);
-        let stake_token_decimals = (3 as u128);
+        let stake_token_decimals = (0 as u128);
         assert!(origin_decimals <= 10, ERR_INVALID_REWARD_DECIMALS);
 
         let reward_scale = ACCUM_REWARD_SCALE / math128::pow(10, origin_decimals);
