@@ -10,8 +10,8 @@ module harvest::stake_lb {
     use aptos_std::math128;
     use aptos_std::table;
     use aptos_std::table::Table;
+
     use aptos_framework::account;
-    use aptos_framework::account::SignerCapability;
     use aptos_framework::coin::{Self, Coin};
     use aptos_framework::timestamp;
 
@@ -169,10 +169,6 @@ module harvest::stake_lb {
         remove_boost_events: EventHandle<RemoveBoostEvent>,
     }
 
-    struct InitConfiguration has key {
-        resource_signer_cap: SignerCapability,
-    }
-
     /// Pool boost config with NFT collection info.
     struct NFTBoostConfig has store {
         boost_percent: u128,
@@ -264,6 +260,7 @@ module harvest::stake_lb {
             scale,
             total_boosted: 0,
             nft_boost_config,
+
             emergency_locked: false,
             stake_events: account::new_event_handle<StakeEvent>(owner),
             unstake_events: account::new_event_handle<UnstakeEvent>(owner),
@@ -300,7 +297,6 @@ module harvest::stake_lb {
         let pools = &mut borrow_global_mut<Pools<R>>(pool_addr).pools;
         assert!(table::contains(pools, collection_name), ERR_NO_POOL);
 
-        // let pool = borrow_global_mut<StakePool<R>>(pool_addr);
         let pool = table::borrow_mut(pools, collection_name);
         assert!(!is_emergency_inner(pool), ERR_EMERGENCY);
 
@@ -412,8 +408,9 @@ module harvest::stake_lb {
     /// Unstakes user coins from pool.
     ///     * `user` - account that owns stake.
     ///     * `pool_addr` - address under which pool are stored.
+    ///     * `collection_name` - name of the collection to which the token belongs.
     ///     * `amount` - a number of S coins to unstake.
-    /// Returns S coins: `Coin<S>`.
+    /// Returns token: `Token`.
     public fun unstake<R>(
         user: &signer,
         pool_addr: address,
@@ -480,6 +477,7 @@ module harvest::stake_lb {
     /// Harvests user reward.
     ///     * `user` - stake owner account.
     ///     * `pool_addr` - address under which pool are stored.
+    ///     * `collection_name` - name of the collection to which the token belongs.
     /// Returns R coins: `Coin<R>`.
     public fun harvest<R>(user: &signer, pool_addr: address, collection_name: String): Coin<R> acquires Pools {
         assert!(exists<Pools<R>>(pool_addr), ERR_NO_POOLS);
@@ -519,6 +517,7 @@ module harvest::stake_lb {
     /// Boosts user stake with nft.
     ///     * `user` - stake owner account.
     ///     * `pool_addr` - address under which pool are stored.
+    ///     * `collection_name` - name of the collection to which the token belongs.
     ///     * `nft` - token for stake boost.
     public fun boost<R>(user: &signer, pool_addr: address, collection_name: String, nft: Token) acquires Pools {
         assert!(exists<Pools<R>>(pool_addr), ERR_NO_POOLS);
@@ -578,6 +577,7 @@ module harvest::stake_lb {
     /// Removes nft boost.
     ///     * `user` - stake owner account.
     ///     * `pool_addr` - address under which pool are stored.
+    ///     * `collection_name` - name of the collection to which the token belongs.
     /// Returns staked nft: `Token`.
     public fun remove_boost<R>(user: &signer, pool_addr: address, collection_name: String): Token acquires Pools {
         assert!(exists<Pools<R>>(pool_addr), ERR_NO_POOLS);
@@ -619,6 +619,7 @@ module harvest::stake_lb {
     /// Enables local "emergency state" for the specific `<S, R>` pool at `pool_addr`. Cannot be disabled.
     ///     * `admin` - current emergency admin account.
     ///     * `pool_addr` - address under which pool are stored.
+    ///     * `collection_name` - name of the collection to which the token belongs.
     public fun enable_emergency<R>(admin: &signer, pool_addr: address, collection_name: String) acquires Pools {
         assert!(exists<Pools<R>>(pool_addr), ERR_NO_POOLS);
 
@@ -639,7 +640,8 @@ module harvest::stake_lb {
     /// Withdraws all the user stake and nft from the pool. Only accessible in the "emergency state".
     ///     * `user` - user who has stake.
     ///     * `pool_addr` - address under which pool are stored.
-    /// Returns staked coins `S` and optionaly nft: `Coin<S>`, `Option<Token>`.
+    ///     * `collection_name` - name of the collection to which the token belongs.
+    /// Returns staked token and optionaly nft: `Token`, `Option<Token>`.
     public fun emergency_unstake<R>(
         user: &signer,
         pool_addr: address,
@@ -667,13 +669,19 @@ module harvest::stake_lb {
         } = user_stake;
 
         let stake_token = option::borrow_mut(&mut pool.stake_token);
-        (token::split(stake_token, amount), nft)
+        if (token::get_token_amount(stake_token) == amount) {
+            (option::extract(&mut pool.stake_token), nft)
+        } else {
+            (token::split(stake_token, amount), nft)
+        }
+        // (token::split(stake_token, amount), nft)
     }
 
     /// If 3 months passed we can withdraw any remaining rewards using treasury account.
     /// In case of emergency we can withdraw to treasury immediately.
     ///     * `treasury` - treasury admin account.
     ///     * `pool_addr` - address of the pool.
+    ///     * `collection_name` - name of the collection to which the token belongs.
     ///     * `amount` - rewards amount to withdraw.
     public fun withdraw_to_treasury<R>(
         treasury: &signer,
@@ -704,6 +712,7 @@ module harvest::stake_lb {
 
     /// Get timestamp of pool creation.
     ///     * `pool_addr` - address under which pool are stored.
+    ///     * `collection_name` - name of the collection to which the token belongs.
     /// Returns timestamp contains date when pool created.
     public fun get_start_timestamp<R>(pool_addr: address, collection_name: String): u64 acquires Pools {
         assert!(exists<Pools<R>>(pool_addr), ERR_NO_POOLS);
@@ -717,6 +726,7 @@ module harvest::stake_lb {
 
     /// Checks if user can boost own stake in pool.
     ///     * `pool_addr` - address under which pool are stored.
+    ///     * `collection_name` - name of the collection to which the token belongs.
     /// Returns true if pool accepts boosts.
     public fun is_boostable<R>(pool_addr: address, collection_name: String): bool acquires Pools {
         assert!(exists<Pools<R>>(pool_addr), ERR_NO_POOLS);
@@ -731,6 +741,7 @@ module harvest::stake_lb {
 
     /// Get NFT boost config parameters for pool.
     ///     * `pool_addr` - the pool with with NFT boost collection enabled.
+    ///     * `collection_name` - name of the collection to which the token belongs.
     /// Returns both `collection_owner`, `collection_name` and boost percent.
     public fun get_boost_config<R>(
         pool_addr: address,
@@ -750,6 +761,7 @@ module harvest::stake_lb {
 
     /// Checks if harvest on the pool finished.
     ///     * `pool_addr` - address under which pool are stored.
+    ///     * `collection_name` - name of the collection to which the token belongs.
     /// Returns true if harvest finished for the pool.
     public fun is_finished<R>(pool_addr: address, collection_name: String): bool acquires Pools {
         assert!(exists<Pools<R>>(pool_addr), ERR_NO_POOLS);
@@ -763,6 +775,7 @@ module harvest::stake_lb {
 
     /// Gets timestamp when harvest will be finished for the pool.
     ///     * `pool_addr` - address under which pool are stored.
+    ///     * `collection_name` - name of the collection to which the token belongs.
     /// Returns timestamp.
     public fun get_end_timestamp<R>(pool_addr: address, collection_name: String): u64 acquires Pools {
         assert!(exists<Pools<R>>(pool_addr), ERR_NO_POOLS);
@@ -776,6 +789,7 @@ module harvest::stake_lb {
 
     /// Checks if pool exists.
     ///     * `pool_addr` - address under which pool are stored.
+    ///     * `collection_name` - name of the collection to which the token belongs.
     /// Returns true if pool exists.
     public fun pool_exists<R>(pool_addr: address, collection_name: String): bool acquires Pools {
         if (exists<Pools<R>>(pool_addr)) {
@@ -788,6 +802,7 @@ module harvest::stake_lb {
 
     /// Checks if stake exists.
     ///     * `pool_addr` - address under which pool are stored.
+    ///     * `collection_name` - name of the collection to which the token belongs.
     ///     * `user_addr` - stake owner address.
     /// Returns true if stake exists.
     public fun stake_exists<R>(pool_addr: address, collection_name: String, user_addr: address): bool acquires Pools {
@@ -803,6 +818,7 @@ module harvest::stake_lb {
 
     /// Checks current total staked amount in pool.
     ///     * `pool_addr` - address under which pool are stored.
+    ///     * `collection_name` - name of the collection to which the token belongs.
     /// Returns total staked amount.
     public fun get_pool_total_stake<R>(pool_addr: address, collection_name: String): u64 acquires Pools {
         assert!(exists<Pools<R>>(pool_addr), ERR_NO_POOLS);
@@ -822,6 +838,7 @@ module harvest::stake_lb {
 
     /// Checks current total boosted amount in pool.
     ///     * `pool_addr` - address under which pool are stored.
+    ///     * `collection_name` - name of the collection to which the token belongs.
     /// Returns total pool boosted amount.
     public fun get_pool_total_boosted<R>(pool_addr: address, collection_name: String): u128 acquires Pools {
         assert!(exists<Pools<R>>(pool_addr), ERR_NO_POOLS);
@@ -834,6 +851,7 @@ module harvest::stake_lb {
 
     /// Checks current amount staked by user in specific pool.
     ///     * `pool_addr` - address under which pool are stored.
+    ///     * `collection_name` - name of the collection to which the token belongs.
     ///     * `user_addr` - stake owner address.
     /// Returns staked amount.
     public fun get_user_stake<R>(pool_addr: address, collection_name: String, user_addr: address): u64 acquires Pools {
@@ -851,6 +869,7 @@ module harvest::stake_lb {
 
     /// Checks if user user stake is boosted.
     ///     * `pool_addr` - address under which pool are stored.
+    ///     * `collection_name` - name of the collection to which the token belongs.
     ///     * `user_addr` - stake owner address.
     /// Returns true if stake is boosted.
     public fun is_boosted<R>(pool_addr: address, collection_name: String, user_addr: address): bool acquires Pools {
@@ -868,6 +887,7 @@ module harvest::stake_lb {
 
     /// Checks current user boosted amount in specific pool.
     ///     * `pool_addr` - address under which pool are stored.
+    ///     * `collection_name` - name of the collection to which the token belongs.
     ///     * `user_addr` - stake owner address.
     /// Returns user boosted amount.
     public fun get_user_boosted<R>(
@@ -889,6 +909,7 @@ module harvest::stake_lb {
 
     /// Checks current pending user reward in specific pool.
     ///     * `pool_addr` - address under which pool are stored.
+    ///     * `collection_name` - name of the collection to which the token belongs.
     ///     * `user_addr` - stake owner address.
     /// Returns reward amount that can be harvested by stake owner.
     public fun get_pending_user_rewards<R>(
@@ -918,6 +939,7 @@ module harvest::stake_lb {
 
     /// Checks stake unlock time in specific pool.
     ///     * `pool_addr` - address under which pool are stored.
+    ///     * `collection_name` - name of the collection to which the token belongs.
     ///     * `user_addr` - stake owner address.
     /// Returns stake unlock time.
     public fun get_unlock_time<R>(pool_addr: address, collection_name: String, user_addr: address): u64 acquires Pools {
@@ -935,6 +957,7 @@ module harvest::stake_lb {
 
     /// Checks if stake is unlocked.
     ///     * `pool_addr` - address under which pool are stored.
+    ///     * `collection_name` - name of the collection to which the token belongs.
     ///     * `user_addr` - stake owner address.
     /// Returns true if user can unstake.
     public fun is_unlocked<R>(pool_addr: address, collection_name: String, user_addr: address): bool acquires Pools {
@@ -955,6 +978,7 @@ module harvest::stake_lb {
 
     /// Checks whether "emergency state" is enabled. In that state, only `emergency_unstake()` function is enabled.
     ///     * `pool_addr` - address under which pool are stored.
+    ///     * `collection_name` - name of the collection to which the token belongs.
     /// Returns true if emergency happened (local or global).
     public fun is_emergency<R>(pool_addr: address, collection_name: String): bool acquires Pools {
         assert!(exists<Pools<R>>(pool_addr), ERR_NO_POOLS);
@@ -968,6 +992,7 @@ module harvest::stake_lb {
 
     /// Checks whether a specific `<S, R>` pool at the `pool_addr` has an "emergency state" enabled.
     ///     * `pool_addr` - address of the pool to check emergency.
+    ///     * `collection_name` - name of the collection to which the token belongs.
     /// Returns true if local emergency enabled for pool.
     public fun is_local_emergency<R>(pool_addr: address, collection_name: String): bool acquires Pools {
         assert!(exists<Pools<R>>(pool_addr), ERR_NO_POOLS);
@@ -983,6 +1008,9 @@ module harvest::stake_lb {
     // Private functions.
     //
 
+    /// The function of getting the creator, the name of the collection and the name of the token from the token.
+    ///     * `token` - token from which need to get the necessary information.
+    /// Returns creator, collection name and name.
     fun get_token_field(token: &Token): (address, String, String) {
         let token_id = token::get_token_id(token);
         let token_data_id = token::get_tokendata_id(token_id);
