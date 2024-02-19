@@ -6,6 +6,7 @@ upgrade_policy = "immutable"
 [addresses]
 harvest = "0xb247ddeee87e848315caf9a33b8e4c71ac53db888cb88143d62d2370cca0ead2"
 stake_emergency_admin = "0x63e39817ec41fad2e8d0713cc906a5f792e4cd2cf704f8b5fab6b2961281fa11"
+liquidswap_v1_resource_account = "0xcaad9853dc3791be57c0022603bfbdb1117401b4ac4b369bef0e9a45e78e7c92"
 
 # Test addresses.
 treasury = "0x13"

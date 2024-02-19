@@ -1,10 +1,13 @@
 #[test_only]
 module harvest::stake_test_helpers {
     use std::signer;
+    use std::string;
     use std::string::{String, utf8};
 
     use aptos_framework::account;
     use aptos_framework::coin::{Self, Coin, MintCapability, BurnCapability};
+    use aptos_token::token;
+    use aptos_token::token::{Token, TokenDataId};
 
     // Coins.
 
@@ -15,6 +18,55 @@ module harvest::stake_test_helpers {
     struct Capabilities<phantom CoinType> has key {
         mint_cap: MintCapability<CoinType>,
         burn_cap: BurnCapability<CoinType>,
+    }
+
+    public fun create_stake_token(collection_owner: &signer, collection_name: String, name: String): Token {
+        let collection_owner_addr = signer::address_of(collection_owner);
+
+        token::create_token_script(
+            collection_owner,
+            collection_name,
+            name,
+            string::utf8(b"Some Description"),
+            1,
+            10000000000000000000,
+            string::utf8(b"https://aptos.dev"),
+            collection_owner_addr,
+            100,
+            0,
+            vector<bool>[ false, false, false, false, false, false ],
+            vector<String>[],
+            vector<vector<u8>>[],
+            vector<String>[],
+        );
+        let token_id = token::create_token_id_raw(
+            collection_owner_addr,
+            collection_name,
+            name,
+            0
+        );
+
+        token::withdraw_token(collection_owner, token_id, 1)
+    }
+
+    public fun mint_token(collection_owner: &signer, token_data_id: TokenDataId, amount: u64) {
+        token::mint_token(collection_owner, token_data_id, amount);
+    }
+
+    // Stake token collection
+    public fun create_st_collection(owner_addr: address, collection_name: String): signer {
+        let collection_owner = new_account(owner_addr);
+
+        token::create_collection(
+            &collection_owner,
+            collection_name,
+            string::utf8(b"Some Description"),
+            string::utf8(b"https://aptos.dev"),
+            50,
+            vector<bool>[false, false, false]
+        );
+
+        collection_owner
     }
 
     public fun initialize_coin<CoinType>(
