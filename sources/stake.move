@@ -136,7 +136,7 @@ module harvest::stake {
 
     /// Stake pool, stores stake, reward coins and related info.
     struct StakePool<phantom S, phantom R> has key {
-        current_epoch: u64, // todo: max vec len
+        current_epoch: u64,
         epochs: vector<Epoch<R>>,
 
         stakes: table::Table<address, UserStake>,
@@ -966,19 +966,6 @@ module harvest::stake {
     /// Calculates pool accumulated reward, updating pool.
     ///     * `pool` - pool to update rewards.
     fun update_accum_reward<S, R>(pool: &mut StakePool<S, R>) {
-        // we have 4 options here:
-        // 1. Current epoch with no time passed
-        //      ==> rewards 0
-        // 2. Current epoch with some time passed
-        //      ==> calc rewards
-        // 3. Current epoch with exact duration passed
-        //      ==> calc rewards
-
-        // 4. Current epoch unfinished and not actual (create empty)
-        //      ==> rewards, finish, create empty
-        // 5. We are somewhere at ghost epoch
-        //      ==> rewards 0
-
         let epoch = vector::borrow_mut(&mut pool.epochs, pool.current_epoch);
         let current_time = timestamp::now_seconds();
 

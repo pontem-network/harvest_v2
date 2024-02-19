@@ -14,6 +14,7 @@ module harvest::staking_epochs_tests_move {
 
     const START_TIME: u64 = 682981200;
 
+    // todo: remove
     fun print_epoch(epoch: u64) {
         let (rewards_amount, reward_per_sec, accum_reward, start_time, last_update_time, end_time, distributed, ended_at, is_ghost)
             = stake::get_epoch_info<S, R>(@harvest, epoch);
@@ -482,5 +483,86 @@ module harvest::staking_epochs_tests_move {
         let gain = stake::harvest<S, R>(&alice_acc, @harvest);
         assert!(coin::value(&gain) == amount<R>(157680000, 0) + amount<R>(150, 0), 1);
         coin::deposit(@alice, gain);
+    }
+
+    // tests with few users
+
+    #[test]
+    public fun test_few_users_rewards_changing() {
+        let (harvest, _) = initialize_test();
+
+        let alice_acc = new_account_with_stake_coins(@alice, amount<S>(100, 0));
+        let bob_acc = new_account_with_stake_coins(@bob, amount<S>(100, 0));
+        coin::register<R>(&alice_acc);
+        coin::register<R>(&bob_acc);
+
+        // register staking pool with rewards
+        let reward_coins = mint_default_coin<R>(amount<R>(1000, 0));
+        let duration = 5_000_000;
+        stake::register_pool<S, R>(&harvest, reward_coins, duration, option::none());
+
+        // stake 100 from alice
+        stake::stake<S, R>(&alice_acc, @harvest, coin::withdraw<S>(&alice_acc, amount<S>(100, 0)));
+
+        // wait half of first epoch
+        timestamp::update_global_time_for_test_secs(START_TIME + duration / 2);
+
+        // stake 100 from bob
+        stake::stake<S, R>(&bob_acc, @harvest, coin::withdraw<S>(&bob_acc, amount<S>(100, 0)));
+
+        // wait till the end of first epoch
+        timestamp::update_global_time_for_test_secs(START_TIME + duration);
+
+        // create new epoch
+        let reward_coins = mint_default_coin<R>(amount<R>(5000, 0));
+        stake::deposit_reward_coins<S, R>(&alice_acc, @harvest, reward_coins, 500);
+        assert!(stake::get_pool_current_epoch<S, R>(@harvest) == 2, 0);
+
+        // wait half of second epoch
+        timestamp::update_global_time_for_test_secs(START_TIME + duration + 500 / 2);
+
+        // unstake for alice
+        let coins = stake::unstake<S, R>(&alice_acc, @harvest, amount<S>(100, 0));
+        coin::deposit(@alice, coins);
+
+        // wait till the end of second epoch
+        timestamp::update_global_time_for_test_secs(START_TIME + duration + 500);
+
+        let coins = stake::unstake<S, R>(&bob_acc, @harvest, amount<S>(100, 0));
+        coin::deposit(@bob, coins);
+
+        let rewards = stake::harvest<S, R >(&alice_acc, @harvest);
+        assert!(coin::value(&rewards) == amount<R>(2000, 0), 1);
+        coin::deposit(@alice, rewards);
+
+        let rewards = stake::harvest<S, R >(&bob_acc, @harvest);
+        assert!(coin::value(&rewards) == amount<R>(4000, 0), 1);
+        coin::deposit(@bob, rewards);
+
+        // check 0 epoch fields
+        let (_, _, accum_reward, _, last_update_time,end_time, distributed, ended_at, _)
+            = stake::get_epoch_info<S, R>(@harvest, 0);
+        assert!(accum_reward == 7_500000000000, 1);
+        assert!(last_update_time == START_TIME + duration, 1);
+        assert!(end_time == START_TIME + duration, 1);
+        assert!(distributed == amount<R>(1000, 0), 1);
+        assert!(ended_at == START_TIME + duration, 1);
+
+        // check 1 (ghost) epoch fields
+        let (rewards_amount, reward_per_sec, accum_reward, _, _, _, _, _, is_ghost)
+            = stake::get_epoch_info<S, R>(@harvest, 1);
+        assert!(rewards_amount == 0, 1);
+        assert!(reward_per_sec == 0, 1);
+        assert!(accum_reward == 0, 1);
+        assert!(is_ghost == true, 1);
+
+        // check 2 epoch fields
+        let (_, _, accum_reward, _, last_update_time,end_time, distributed, ended_at, _)
+            = stake::get_epoch_info<S, R>(@harvest, 2);
+        assert!(accum_reward == 37_500000000000, 1);
+        assert!(last_update_time == START_TIME + duration + 500, 1);
+        assert!(end_time == START_TIME + duration + 500, 1);
+        assert!(distributed == amount<R>(5000, 0), 1);
+        assert!(ended_at == START_TIME + duration + 500, 1);
     }
 }
