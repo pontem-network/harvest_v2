@@ -116,13 +116,13 @@ module harvest::stake {
 
     struct Epoch<phantom R> has store {
         rewards_amount: u64,
-        // rewards_to_distribute: Coin<R>,
-
         reward_per_sec: u64,
         // pool reward ((reward_per_sec * time) / total_staked) + accum_reward (previous period)
         accum_reward: u128,
 
+        // start timestamp
         start_time: u64,
+        // last accum_reward update time
         last_update_time: u64,
         end_time: u64,
 
@@ -138,13 +138,6 @@ module harvest::stake {
     struct StakePool<phantom S, phantom R> has key {
         current_epoch: u64, // todo: max vec len
         epochs: vector<Epoch<R>>,
-
-        // // last accum_reward update time
-        // last_updated: u64,
-        // // start timestamp.
-        // start_timestamp: u64,
-        // // when harvest will be finished.
-        // end_timestamp: u64,
 
         stakes: table::Table<address, UserStake>,
         stake_coins: Coin<S>,
@@ -246,7 +239,6 @@ module harvest::stake {
 
         let epoch = Epoch {
             rewards_amount,
-            // rewards_to_distribute: reward_coins,
 
             reward_per_sec,
             accum_reward: 0,
@@ -262,18 +254,12 @@ module harvest::stake {
         };
 
         let pool = StakePool<S, R> {
-            // reward_per_sec,
-            // accum_reward: 0,
-
             current_epoch: 0,
             epochs: vector[epoch],
 
-            // last_updated: current_time,
-            // start_timestamp: current_time,
-            // end_timestamp,
             stakes: table::new(),
             stake_coins: coin::zero(),
-            reward_coins,// coin::zero(),
+            reward_coins,
             scale,
             total_boosted: 0,
             nft_boost_config,
@@ -293,7 +279,7 @@ module harvest::stake {
     ///     * `depositor` - rewards depositor account.
     ///     * `pool_addr` - address under which pool are stored.
     ///     * `coins` - R coins which are used in distribution as reward.
-    /// TODO: duration
+    ///     * `duration` - new pool life duration.
     public fun deposit_reward_coins<S, R>(
         depositor: &signer,
         pool_addr: address,
@@ -346,7 +332,6 @@ module harvest::stake {
         let epoch_duration = current_time + duration;
         let next_epoch = Epoch<R> {
             rewards_amount: total_rewards,
-            // rewards_to_distribute: coins,
 
             reward_per_sec,
             accum_reward: 0,
@@ -425,7 +410,7 @@ module harvest::stake {
             table::add(&mut pool.stakes, user_address, new_stake);
         } else {
             // update earnings
-            updated_earnings_epochs(pool, user_address);
+            update_earnings_epochs(pool, user_address);
 
             let user_stake = table::borrow_mut(&mut pool.stakes, user_address);
             user_stake.amount = user_stake.amount + amount;
@@ -487,7 +472,7 @@ module harvest::stake {
         assert!(timestamp::now_seconds() >= user_stake.unlock_time, ERR_TOO_EARLY_UNSTAKE);
 
         // update earnings
-        updated_earnings_epochs(pool, user_address);
+        update_earnings_epochs(pool, user_address);
 
         let user_stake = table::borrow_mut(&mut pool.stakes, user_address);
         user_stake.amount = user_stake.amount - amount;
@@ -534,7 +519,7 @@ module harvest::stake {
         update_accum_reward(pool);
 
         // update earnings
-        updated_earnings_epochs(pool, user_address);
+        update_earnings_epochs(pool, user_address);
 
         let user_stake = table::borrow_mut(&mut pool.stakes, user_address);
         let earned = user_stake.earned_reward;
@@ -585,7 +570,7 @@ module harvest::stake {
         update_accum_reward(pool);
 
         // update earnings
-        updated_earnings_epochs(pool, user_address);
+        update_earnings_epochs(pool, user_address);
 
         // check if stake boosted before
         let user_stake = table::borrow_mut(&mut pool.stakes, user_address);
@@ -631,7 +616,7 @@ module harvest::stake {
         assert!(option::is_some(&user_stake.nft), ERR_NO_BOOST);
 
         // update earnings
-        updated_earnings_epochs(pool, user_address);
+        update_earnings_epochs(pool, user_address);
 
         // update user stake and pool after nft claim
         let user_stake = table::borrow_mut(&mut pool.stakes, user_address);
@@ -1056,9 +1041,11 @@ module harvest::stake {
     }
 
     /// Calculates accumulated reward without pool update.
-    ///     * `pool` - pool to calculate rewards.
-    ///     * `current_time` - execution timestamp.
-    ///  TODO: new fields
+    ///     * `total_boosted_stake` - total amount of staked coins with boosts.
+    ///     * `last_update_time` - last update time of epoch `accum_reward` field.
+    ///     * `reward_per_sec` - rewards to distribute per second of epoch duration.
+    ///     * `reward_time` - time passed since last update or epoch end time.
+    ///     * `scale` - multiplier to handle decimals.
     /// Returns new accumulated reward.
     fun accum_rewards_since_last_updated(
         total_boosted_stake: u128,
@@ -1077,8 +1064,10 @@ module harvest::stake {
         total_rewards / total_boosted_stake
     }
 
-    // TODO: descr
-    fun updated_earnings_epochs<S, R>(pool: &mut StakePool<S, R>, user_address: address) {
+    /// Updates user earnings.
+    ///     * `pool` - pool to get epochs and stakes.
+    ///     * `user_address` - address of user to update earnings for.
+    fun update_earnings_epochs<S, R>(pool: &mut StakePool<S, R>, user_address: address) {
         let epoch_count = pool.current_epoch + 1;
         let epochs = &mut pool.epochs;
         let user_stake = table::borrow_mut(&mut pool.stakes, user_address);
@@ -1090,7 +1079,6 @@ module harvest::stake {
             update_user_earnings(epoch.accum_reward, pool.scale, user_stake, i);
             i = i + 1;
         };
-
     }
 
     /// Calculates user earnings, updating user stake.
@@ -1247,6 +1235,6 @@ module harvest::stake {
         let pool = borrow_global_mut<StakePool<S, R>>(pool_addr);
 
         update_accum_reward(pool);
-        updated_earnings_epochs(pool, user_addr);
+        update_earnings_epochs(pool, user_addr);
     }
 }
