@@ -6,6 +6,7 @@ upgrade_policy = "compatible"
 [addresses]
 harvest = "0x0f66a21efeeae7adda7688473b140dfae1e42f4a669d5c4026dfc7d12443a6b2"
 stake_emergency_admin = "0xc5f39b983cf06b9e26dc149b3a8c0d7fcb27733954fa86eff7f3c70427644b1f"
+liquidswap_v1_resource_account = "0xa0d8702b7c696d989675cd2f894f44e79361531cff115c0063390922f5463883"
 
 # Test addresses.
 treasury = "0x41"
