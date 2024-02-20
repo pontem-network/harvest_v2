@@ -129,9 +129,6 @@ module harvest::stake {
         // stats
         distributed: u64,
         ended_at: u64,
-
-        // tmp
-        is_ghost: bool,
     }
 
     /// Stake pool, stores stake, reward coins and related info.
@@ -249,8 +246,6 @@ module harvest::stake {
 
             distributed: 0,
             ended_at: 0,
-
-            is_ghost: false
         };
 
         let pool = StakePool<S, R> {
@@ -342,8 +337,6 @@ module harvest::stake {
 
             distributed: 0,
             ended_at: 0,
-
-            is_ghost: false
         };
 
         vector::push_back(epochs, next_epoch);
@@ -1012,8 +1005,6 @@ module harvest::stake {
 
                     distributed: 0,
                     ended_at: 0,
-
-                    is_ghost: true
                 };
                 vector::push_back(&mut pool.epochs, ghost_epoch);
 
@@ -1203,12 +1194,12 @@ module harvest::stake {
     #[test_only]
     /// Access staking pool fields with no getters.
     public fun get_epoch_info<S, R>(pool_addr: address, epoch: u64):
-        (u64, u64, u128, u64, u64, u64, u64, u64, bool) acquires StakePool {
+        (u64, u64, u128, u64, u64, u64, u64, u64) acquires StakePool {
         let pool = borrow_global<StakePool<S, R>>(pool_addr);
         let epoch = vector::borrow(&pool.epochs, epoch);
 
         (epoch.rewards_amount, epoch.reward_per_sec, epoch.accum_reward, epoch.start_time,
-            epoch.last_update_time, epoch.end_time, epoch.distributed, epoch.ended_at, epoch.is_ghost)
+            epoch.last_update_time, epoch.end_time, epoch.distributed, epoch.ended_at)
     }
 
     #[test_only]

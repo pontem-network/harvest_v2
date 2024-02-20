@@ -946,7 +946,7 @@ module harvest::stake_tests {
         stake::stake<StakeCoin, RewardCoin>(&alice_acc, @harvest, coins);
 
         stake::recalculate_user_stake<StakeCoin, RewardCoin>(@harvest, @alice);
-        let (_, _, accum_reward, _, last_updated, _, _, _, _)
+        let (_, _, accum_reward, _, last_updated, _, _, _)
             = stake::get_epoch_info<StakeCoin, RewardCoin>(@harvest, 0);
         let reward_val = stake::get_pending_user_rewards<StakeCoin, RewardCoin>(@harvest, @alice);
         assert!(reward_val == 0, 1);
@@ -955,7 +955,7 @@ module harvest::stake_tests {
 
         timestamp::update_global_time_for_test_secs(START_TIME + duration / 2);
         stake::recalculate_user_stake<StakeCoin, RewardCoin>(@harvest, @alice);
-        let (_, _, accum_reward, _, last_updated, _, _, _, _)
+        let (_, _, accum_reward, _, last_updated, _, _, _)
             = stake::get_epoch_info<StakeCoin, RewardCoin>(@harvest, 0);
         let reward_val = stake::get_pending_user_rewards<StakeCoin, RewardCoin>(@harvest, @alice);
         assert!(reward_val == 78840000000000, 1);
@@ -964,7 +964,7 @@ module harvest::stake_tests {
 
         timestamp::update_global_time_for_test_secs(START_TIME + duration);
         stake::recalculate_user_stake<StakeCoin, RewardCoin>(@harvest, @alice);
-        let (_, _, accum_reward, _, last_updated, _, _, _, _)
+        let (_, _, accum_reward, _, last_updated, _, _, _)
             = stake::get_epoch_info<StakeCoin, RewardCoin>(@harvest, 0);
         let reward_val = stake::get_pending_user_rewards<StakeCoin, RewardCoin>(@harvest, @alice);
         assert!(reward_val == 157680000000000, 1);
@@ -973,7 +973,7 @@ module harvest::stake_tests {
 
         timestamp::update_global_time_for_test_secs(START_TIME + duration + 1);
         stake::recalculate_user_stake<StakeCoin, RewardCoin>(@harvest, @alice);
-        let (_, _, accum_reward, _, last_updated, _, _, _, _)
+        let (_, _, accum_reward, _, last_updated, _, _, _)
             = stake::get_epoch_info<StakeCoin, RewardCoin>(@harvest, 1);
         let reward_val = stake::get_pending_user_rewards<StakeCoin, RewardCoin>(@harvest, @alice);
         assert!(reward_val == 157680000000000, 1);
@@ -982,7 +982,7 @@ module harvest::stake_tests {
 
         timestamp::update_global_time_for_test_secs(START_TIME + duration + WEEK_IN_SECONDS * 200);
         stake::recalculate_user_stake<StakeCoin, RewardCoin>(@harvest, @alice);
-        let (_, _, accum_reward, _, last_updated, _, _, _, _)
+        let (_, _, accum_reward, _, last_updated, _, _, _)
             = stake::get_epoch_info<StakeCoin, RewardCoin>(@harvest, 1);
         let reward_val = stake::get_pending_user_rewards<StakeCoin, RewardCoin>(@harvest, @alice);
         assert!(reward_val == 157680000000000, 1);
