@@ -905,9 +905,7 @@ module harvest::stake {
         let pool = borrow_global<StakePool<S, R>>(pool_addr);
         assert!(table::contains(&pool.stakes, user_addr), ERR_NO_STAKE);
 
-        let current_epoch_endtime = vector::borrow(&pool.epochs, pool.current_epoch).end_time;
-        // todo: remove epoch endtime dep
-        math64::min(current_epoch_endtime, table::borrow(&pool.stakes, user_addr).unlock_time)
+        table::borrow(&pool.stakes, user_addr).unlock_time
     }
 
     #[view]
@@ -922,10 +920,7 @@ module harvest::stake {
         assert!(table::contains(&pool.stakes, user_addr), ERR_NO_STAKE);
 
         let current_time = timestamp::now_seconds();
-        // todo: remove endtime dep
-        let current_epoch_endtime = vector::borrow(&pool.epochs, pool.current_epoch).end_time;
-        let unlock_time =
-            math64::min(current_epoch_endtime, table::borrow(&pool.stakes, user_addr).unlock_time);
+        let unlock_time = table::borrow(&pool.stakes, user_addr).unlock_time;
 
         current_time >= unlock_time
     }
