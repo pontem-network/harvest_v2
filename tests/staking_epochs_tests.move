@@ -34,7 +34,6 @@ module harvest::staking_epochs_tests_move {
     }
 
     // Deposit reward on different epoch stages test
-    // todo: what if epoch ended but no user where there
 
     #[test]
     public fun test_deposit_twice_same_sec() {
@@ -564,5 +563,68 @@ module harvest::staking_epochs_tests_move {
         assert!(end_time == START_TIME + duration + 500, 1);
         assert!(distributed == amount<R>(5000, 0), 1);
         assert!(ended_at == START_TIME + duration + 500, 1);
+    }
+
+    #[test]
+    public fun test_few_rew_epochs_no_users_then_two_users() {
+        let (harvest, _) = initialize_test();
+
+        let alice_acc = new_account_with_stake_coins(@alice, amount<S>(100, 0));
+        let bob_acc = new_account_with_stake_coins(@bob, amount<S>(100, 0));
+        coin::register<R>(&alice_acc);
+        coin::register<R>(&bob_acc);
+
+        // register staking pool with rewards
+        let reward_coins = mint_default_coin<R>(amount<R>(1000, 0));
+        let duration = 500;
+        stake::register_pool<S, R>(&harvest, reward_coins, duration, option::none());
+
+        // wait till the end of first epoch and a minute more
+        timestamp::update_global_time_for_test_secs(START_TIME + duration + 60);
+
+        // create new epoch
+        let reward_coins = mint_default_coin<R>(amount<R>(1000, 0));
+        stake::deposit_reward_coins<S, R>(&alice_acc, @harvest, reward_coins, 500);
+        assert!(stake::get_pool_current_epoch<S, R>(@harvest) == 2, 0);
+
+        // wait till the end of first epoch and a minute more
+        timestamp::update_global_time_for_test_secs(START_TIME + duration * 2 + 120);
+
+        // create new epoch
+        let reward_coins = mint_default_coin<R>(amount<R>(1200, 0));
+        stake::deposit_reward_coins<S, R>(&alice_acc, @harvest, reward_coins, 6_000_000);
+        assert!(stake::get_pool_current_epoch<S, R>(@harvest) == 4, 0);
+
+        // wait 1/3 of third epoch
+        timestamp::update_global_time_for_test_secs(START_TIME + duration * 2 + 120 + 2_000_000);
+
+        // stake 100 from alice
+        stake::stake<S, R>(&alice_acc, @harvest, coin::withdraw<S>(&alice_acc, amount<S>(100, 0)));
+        // stake 100 from bob
+        stake::stake<S, R>(&bob_acc, @harvest, coin::withdraw<S>(&bob_acc, amount<S>(100, 0)));
+
+        // wait 2/3 of third epoch
+        timestamp::update_global_time_for_test_secs(START_TIME + duration * 2 + 120 + 4_000_000);
+
+        let stake_coins = stake::unstake<S, R>(&bob_acc, @harvest, amount<S>(100, 0));
+        coin::deposit(@bob, stake_coins);
+
+        // wait till the end of third epoch and a week more
+        timestamp::update_global_time_for_test_secs(START_TIME + duration * 2 + 120 + 6_000_000 + WEEK_IN_SECONDS);
+
+        let stake_coins = stake::unstake<S, R>(&alice_acc, @harvest, amount<S>(100, 0));
+        coin::deposit(@alice, stake_coins);
+
+        let alice_rewards = stake::harvest<S, R>(&alice_acc, @harvest);
+        // as alice were in epoch only 2/3 of time and 1/3 with bob
+        // ((1200 / 3) * 0) + ((1200 / 3) * 0.5) + ((1200 / 3) * 1) = 600
+        assert!(coin::value(&alice_rewards) == amount<R>(600,0), 1);
+        coin::deposit(@alice, alice_rewards);
+
+        let bob_rewards = stake::harvest<S, R>(&bob_acc, @harvest);
+        // as bob were in epoch only with alice and 1/3 of epoch time
+        // ((1200 / 3) * 0) + ((1200 / 3) * 0.5) + ((1200 / 3) * 0) = 200
+        assert!(coin::value(&bob_rewards) == amount<R>(200,0), 1);
+        coin::deposit(@bob, bob_rewards);
     }
 }
