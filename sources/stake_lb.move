@@ -156,7 +156,7 @@ module harvest::stake_lb {
 
         stakes: Table<address, UserStake>,
         // Bin ID => Token
-        stake_tokens: Table<u64, Token>,
+        stake_tokens: Table<u32, Token>,
         reward_coins: Coin<R>,
         // stores the total amount of stake tokens
         amounts: u128,
@@ -192,7 +192,7 @@ module harvest::stake_lb {
     /// Stores user stake info.
     struct UserStake has store {
         // bin_id => amount
-        stakes: TableWithLength<u64, u64>,
+        stakes: TableWithLength<u32, u64>,
         // contains the value of rewards that cannot be harvested by the user
         unobtainable_rewards: vector<u128>,
         earned_reward: u64,
@@ -202,7 +202,7 @@ module harvest::stake_lb {
         // stores the total amount of stake tokens
         amounts: u128,
         boosted_amount: u128,
-        bin_ids: vector<u64>,
+        bin_ids: vector<u32>,
     }
 
     //
@@ -430,7 +430,7 @@ module harvest::stake_lb {
 
         if (!table::contains(&pool.stakes, user_address)) {
             // Add a table to track the amount of staking
-            let stakes = table_with_length::new<u64, u64>();
+            let stakes = table_with_length::new<u32, u64>();
             table_with_length::add(&mut stakes, bin_id, amount);
             let new_stake = UserStake {
                 stakes,
@@ -520,7 +520,7 @@ module harvest::stake_lb {
         user: &signer,
         pool_addr: address,
         collection_name: String,
-        bin_id: u64,
+        bin_id: u32,
         amount: u64
     ): Token acquires Pools {
         assert!(amount > 0, ERR_AMOUNT_CANNOT_BE_ZERO);
@@ -602,7 +602,7 @@ module harvest::stake_lb {
     ///     * `collection_name` - name of the collection to which the token belongs.
     ///     * `bin_id` - bin id of the LB token.
     /// Returns R coins: `Coin<R>`.
-    public fun harvest<R>(user: &signer, pool_addr: address, collection_name: String, bin_id: u64): Coin<R> acquires Pools {
+    public fun harvest<R>(user: &signer, pool_addr: address, collection_name: String): Coin<R> acquires Pools {
         assert!(exists<Pools<R>>(pool_addr), ERR_NO_POOLS);
 
         let pools = &mut borrow_global_mut<Pools<R>>(pool_addr).pools;
@@ -614,8 +614,8 @@ module harvest::stake_lb {
         let user_address = signer::address_of(user);
         assert!(table::contains(&pool.stakes, user_address), ERR_NO_STAKE);
 
-        let user_stake = table::borrow(&mut pool.stakes, user_address);
-        assert!(table_with_length::contains(&user_stake.stakes, bin_id), ERR_NO_STAKE);
+        // let user_stake = table::borrow(&mut pool.stakes, user_address);
+        // assert!(table_with_length::contains(&user_stake.stakes, bin_id), ERR_NO_STAKE);
 
         // update pool accum_reward and timestamp
         update_accum_reward(pool);
@@ -793,7 +793,7 @@ module harvest::stake_lb {
 
         let user_stake = table::remove(&mut pool.stakes, user_addr);
 
-        let length = vector::length(&user_stake.bin_ids) - 1;
+        let length = vector::length(&user_stake.bin_ids);
         let tokens = vector::empty<Token>();
         for (i in 0..length) {
             let bin_id = vector::pop_back(&mut user_stake.bin_ids);
@@ -1023,7 +1023,8 @@ module harvest::stake_lb {
         let pool = table::borrow(pools, collection_name);
         assert!(table::contains(&pool.stakes, user_addr), ERR_NO_STAKE);
 
-        table::borrow(&pool.stakes, user_addr).amounts
+        let user_stake = table::borrow(&pool.stakes, user_addr);
+        user_stake.amounts
     }
 
     #[view]
@@ -1207,9 +1208,9 @@ module harvest::stake_lb {
 
     /// Getting the Bin id for the LB token
     ///     * `token_id` - he TokenId of the LB token
-    fun get_bin_id(token_id: TokenId): u64 {
+    fun get_bin_id(token_id: TokenId): u32 {
         let properties = token::get_property_map(@liquidswap_v1_resource_account, token_id);
-        property_map::read_u64(&properties, &string::utf8(b"Bin ID"))
+        (property_map::read_u64(&properties, &string::utf8(b"Bin ID")) as u32)
     }
 
     /// The function of getting the creator, the name of the collection and the name of the token from the token.
