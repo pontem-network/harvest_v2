@@ -409,21 +409,20 @@ module harvest::stake_lb {
         assert!(amount > 0, ERR_AMOUNT_CANNOT_BE_ZERO);
 
         let pools = &mut borrow_global_mut<Pools<R>>(pool_addr).pools;
+
         let token_id = token::get_token_id(&token);
         let token_data_id = token::get_tokendata_id(token_id);
-        let (_, collection_name, _) = token::get_token_data_id_fields(&token_data_id);
+        let bin_id = get_bin_id(token_id);
+        let (token_creator, collection_name, _) = token::get_token_data_id_fields(&token_data_id);
+        assert!(token_creator == @liquidswap_v1_resource_account, ERR_WRONG_TOKEN_CREATOR);
 
         assert!(table::contains(pools, collection_name), ERR_NO_POOL);
 
         let pool = table::borrow_mut(pools, collection_name);
         assert!(!is_emergency_inner(pool), ERR_EMERGENCY);
 
-        pool.amounts = pool.amounts + (amount as u128);
-
         // update pool accum_reward and timestamp
         update_accum_reward(pool);
-
-        let bin_id = get_bin_id(token_id);
 
         let current_time = timestamp::now_seconds();
         let user_address = signer::address_of(user);
@@ -463,25 +462,23 @@ module harvest::stake_lb {
 
             // Add/update a table to track the amount of staking
             let user_stake = table::borrow_mut(&mut pool.stakes, user_address);
-            let user_amount;
+            user_stake.amounts = user_stake.amounts + (amount as u128);
 
+            // update/add amount for stake token
             if (table_with_length::contains(&user_stake.stakes, bin_id)) {
                 let current_token_amount = table_with_length::borrow_mut(&mut user_stake.stakes, bin_id);
                 *current_token_amount = *current_token_amount + amount;
-                user_amount = *current_token_amount;
             } else {
                 table_with_length::add(&mut user_stake.stakes, bin_id, amount);
-                user_amount = amount;
                 vector::push_back(&mut user_stake.bin_ids, bin_id);
             };
-            user_stake.amounts = user_stake.amounts + (amount as u128);
 
             if (option::is_some(&user_stake.nft)) {
                 let boost_percent = option::borrow(&pool.nft_boost_config).boost_percent;
 
                 pool.total_boosted = pool.total_boosted - user_stake.boosted_amount;
                 // calculate user boosted_amount using u128 to prevent overflow
-                user_stake.boosted_amount = ((user_amount as u128) * boost_percent) / 100;
+                user_stake.boosted_amount = (user_stake.amounts * boost_percent) / 100;
                 pool.total_boosted = pool.total_boosted + user_stake.boosted_amount;
             };
 
@@ -495,6 +492,8 @@ module harvest::stake_lb {
 
             user_stake.unlock_time = current_time + WEEK_IN_SECONDS;
         };
+
+        pool.amounts = pool.amounts + (amount as u128);
 
         if (table::contains(&pool.stake_tokens, bin_id)) {
             let dst_token = table::borrow_mut(&mut pool.stake_tokens, bin_id);
@@ -530,8 +529,6 @@ module harvest::stake_lb {
         assert!(table::contains(pools, collection_name), ERR_NO_POOL);
 
         let pool = table::borrow_mut(pools, collection_name);
-
-        // assert!(table::contains(&pool.stake_tokens, bin_id), ERR_NO_STAKE);
         assert!(!is_emergency_inner(pool), ERR_EMERGENCY);
 
         let user_address = signer::address_of(user);
@@ -539,8 +536,6 @@ module harvest::stake_lb {
 
         let user_stake = table::borrow(&mut pool.stakes, user_address);
         assert!(table_with_length::contains(&user_stake.stakes, bin_id), ERR_NO_STAKE);
-
-        pool.amounts = pool.amounts - (amount as u128);
 
         // update pool accum_reward and timestamp
         update_accum_reward(pool);
@@ -588,6 +583,8 @@ module harvest::stake_lb {
             UnstakeEvent { user_address, amount },
         );
 
+        pool.amounts = pool.amounts - (amount as u128);
+
         let token = table::borrow_mut(&mut pool.stake_tokens, bin_id);
         if (token::get_token_amount(token) == amount) {
             table::remove(&mut pool.stake_tokens, bin_id)
@@ -613,9 +610,6 @@ module harvest::stake_lb {
 
         let user_address = signer::address_of(user);
         assert!(table::contains(&pool.stakes, user_address), ERR_NO_STAKE);
-
-        // let user_stake = table::borrow(&mut pool.stakes, user_address);
-        // assert!(table_with_length::contains(&user_stake.stakes, bin_id), ERR_NO_STAKE);
 
         // update pool accum_reward and timestamp
         update_accum_reward(pool);
@@ -1103,10 +1097,6 @@ module harvest::stake_lb {
                 let epoch_end_time = epoch.end_time;
                 let reward_time = math64::min(epoch_end_time, current_time);
 
-                // let pool_total_staked_with_boosted = pool_total_staked_with_boosted(
-                //     &pool.stake_tokens,
-                //     pool.total_boosted
-                // );
                 let pool_total_staked_with_boosted = pool.amounts + pool.total_boosted;
                 let new_accum_rewards =
                     accum_rewards_since_last_updated(
@@ -1244,7 +1234,6 @@ module harvest::stake_lb {
             let epoch_end_time = epoch.end_time;
             let reward_time = math64::min(epoch_end_time, current_time);
 
-            // let pool_total_staked_with_boosted = pool_total_staked_with_boosted(&pool.stake_tokens, pool.total_boosted);
             let pool_total_staked_with_boosted = pool.amounts + pool.total_boosted;
             let new_accum_rewards =
                 accum_rewards_since_last_updated(
@@ -1388,18 +1377,6 @@ module harvest::stake_lb {
         };
     }
 
-    // /// Get total staked amount + boosted amount in the pool.
-    // ///     * `pool` - the pool itself.
-    // /// Returns amount.
-    // fun pool_total_staked_with_boosted(token: &Option<Token>, total_boosted: u128): u128 {
-    //     if (option::is_some(token)) {
-    //         let stake_token = option::borrow(token);
-    //         (token::get_token_amount(stake_token) as u128) + total_boosted
-    //     } else {
-    //         (0 as u128) + total_boosted
-    //     }
-    // }
-
     /// Get total staked amount + boosted amount by the user.
     ///     * `user_stake` - the user stake.
     /// Returns amount.
@@ -1498,7 +1475,7 @@ module harvest::stake_lb {
         pool_addr: address,
         collection_name: String,
         epoch: u64
-    ): (u64, u64, u128, u64, u64, u64, u64, u64, bool) acquires Pools {
+    ): (u64, u64, u128, u64, u64, u64, u64, u64) acquires Pools {
         assert!(exists<Pools<R>>(pool_addr), ERR_NO_POOLS);
 
         let pools = &mut borrow_global_mut<Pools<R>>(pool_addr).pools;
@@ -1508,7 +1485,7 @@ module harvest::stake_lb {
         let epoch = vector::borrow(&pool.epochs, epoch);
 
         (epoch.rewards_amount, epoch.reward_per_sec, epoch.accum_reward, epoch.start_time,
-            epoch.last_update_time, epoch.end_time, epoch.distributed, epoch.ended_at, epoch.is_ghost)
+            epoch.last_update_time, epoch.end_time, epoch.distributed, epoch.ended_at)
     }
 
     #[test_only]

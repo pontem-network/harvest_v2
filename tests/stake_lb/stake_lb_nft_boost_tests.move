@@ -3,7 +3,6 @@ module harvest::stake_lb_nft_boost_tests {
     use std::option;
     use std::signer;
     use std::string::{Self, String};
-    use aptos_std::debug::print;
 
     use aptos_framework::coin;
     use aptos_framework::timestamp;
@@ -11,7 +10,12 @@ module harvest::stake_lb_nft_boost_tests {
     use aptos_token::token::{Self, Token};
 
     use harvest::stake_lb;
-    use harvest::stake_lb_test_helpers::{new_account, StakeCoin, RewardCoin, new_account_with_stake_coins, mint_default_coin,
+    use harvest::stake_lb_test_helpers::{
+        new_account,
+        StakeCoin,
+        RewardCoin,
+        new_account_with_stake_coins,
+        mint_default_coin,
         create_stake_token,
         create_st_collection,
         create_token_data_id_with_bin_id,
@@ -171,7 +175,6 @@ module harvest::stake_lb_nft_boost_tests {
         let user_boosted = stake_lb::get_user_boosted<RewardCoin>(@harvest, st_collection_name, @alice);
         assert!(total_boosted == 0, 1);
         assert!(user_boosted == 0, 1);
-
     }
 
     // #[test]
@@ -278,8 +281,6 @@ module harvest::stake_lb_nft_boost_tests {
 
         // assert!(pending_rewards_1 == 403233333333, 1); // stake token decimals > 2
         // assert!(pending_rewards_2 == 201666666666, 1); // stake token decimals > 2
-        print<u64>(&pending_rewards_1);
-        print<u64>(&pending_rewards_2);
         assert!(pending_rewards_1 == 403233333300, 1);
         assert!(pending_rewards_2 == 201666666600, 1);
 
@@ -288,7 +289,6 @@ module harvest::stake_lb_nft_boost_tests {
         token::deposit_token(&alice_acc, token);
 
         // stake 50 StakeCoins from bob
-        // let split_token = token::withdraw_token(&bob_acc, token_id, 50000000);
         let split_token = mint_stake_token(&st_collection_owner, token_data_id, 50000000);
         stake_lb::stake<RewardCoin>(&bob_acc, @harvest, split_token);
 

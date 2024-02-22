@@ -146,7 +146,13 @@ module harvest::stake_lb_tests {
 
         // deposit more rewards
         let reward_coins = mint_default_coin<RewardCoin>(604800000000);
-        stake_lb::deposit_reward_coins<RewardCoin>(&alice_acc, @harvest, collection_name, reward_coins, 15768000 + 604800);
+        stake_lb::deposit_reward_coins<RewardCoin>(
+            &alice_acc,
+            @harvest,
+            collection_name,
+            reward_coins,
+            15768000 + 604800
+        );
 
         // check pool statistics
         let pool_finish_time = pool_finish_time + 604800;
@@ -203,15 +209,15 @@ module harvest::stake_lb_tests {
         let token_id = token::get_token_id(&stake_token);
 
         // stake 500 StakeCoins from alice
-        let split_token = token::withdraw_token(&alice_acc, token_id, 500000000);
+        let split_token = mint_stake_token(&collection_owner, token_data_id, 500000000);
         stake_lb::stake<RewardCoin>(&alice_acc, @harvest, split_token);
 
-        assert!(token::balance_of(@alice, token_id) == 400000000, 1);
+        assert!(token::balance_of(@alice, token_id) == 0, 1);
         assert!(stake_lb::get_user_stake<RewardCoin>(@harvest, collection_name, @alice) == 500000000, 1);
         assert!(stake_lb::get_pool_total_stake<RewardCoin>(@harvest, collection_name) == 500000000, 1);
 
         // stake 99 StakeCoins from bob
-        let split_token = token::withdraw_token(&bob_acc, token_id, 99000000);
+        let split_token = mint_stake_token(&collection_owner, token_data_id, 99000000);
         stake_lb::stake<RewardCoin>(&bob_acc, @harvest, split_token);
 
         assert!(token::balance_of(@bob, token_id) == 0, 1);
@@ -220,10 +226,10 @@ module harvest::stake_lb_tests {
         assert!(stake_lb::get_pool_total_stake<RewardCoin>(@harvest, collection_name) == 599000000, 1);
 
         // stake 300 StakeCoins more from alice
-        let split_token = token::withdraw_token(&alice_acc, token_id, 300000000);
+        let split_token = mint_stake_token(&collection_owner, token_data_id, 300000000);
         stake_lb::stake<RewardCoin>(&alice_acc, @harvest, split_token);
 
-        assert!(token::balance_of(@alice, token_id) == 100000000, 1);
+        assert!(token::balance_of(@alice, token_id) == 0, 1);
 
         assert!(stake_lb::get_user_stake<RewardCoin>(@harvest, collection_name, @alice) == 800000000, 1);
         assert!(stake_lb::get_pool_total_stake<RewardCoin>(@harvest, collection_name) == 899000000, 1);
@@ -243,11 +249,13 @@ module harvest::stake_lb_tests {
         // unstake all 99 StakeCoins from bob
         let token =
             stake_lb::unstake<RewardCoin>(&bob_acc, @harvest, collection_name, 1, 99000000);
+
         assert!(token::get_token_amount(&token) == 99000000, 1);
         assert!(stake_lb::get_user_stake<RewardCoin>(@harvest, collection_name, @bob) == 0, 1);
         assert!(stake_lb::get_pool_total_stake<RewardCoin>(@harvest, collection_name) == 400000000, 1);
         token::deposit_token(&bob_acc, token);
-        token::deposit_token(&bob_acc, stake_token);
+
+        token::deposit_token(&collection_owner, stake_token);
     }
 
     #[test]
@@ -382,146 +390,161 @@ module harvest::stake_lb_tests {
         token::deposit_token(&alice_acc, token);
     }
 
-    // #[test]
-    // public fun test_stake_lockup_period() {
-    //     let (harvest, _) = initialize_test();
-    //
-    //     let alice_acc = new_account_with_stake_coins(@alice, 1000000);
-    //     let bob_acc = new_account_with_stake_coins(@bob, 1000000);
-    //
-    //     // register staking pool with rewards
-    //     let reward_coins = mint_default_coin<RewardCoin>(15768000000000);
-    //     let duration = 15768000;
-    //     stake_lb::register_pool<RewardCoin>(&harvest, reward_coins, duration, option::none());
-    //
-    //     // stake from alice
-    //     let coins =
-    //         coin::withdraw<StakeCoin>(&alice_acc, 500000);
-    //     stake_lb::stake<RewardCoin>(&alice_acc, @harvest, coins);
-    //
-    //     // check alice stake unlock time
-    //     let unlock_time = stake_lb::get_unlock_time<RewardCoin>(@harvest, @alice);
-    //     assert!(unlock_time == START_TIME + WEEK_IN_SECONDS, 1);
-    //
-    //     // wait 100 seconds
-    //     timestamp::update_global_time_for_test_secs(START_TIME + 100);
-    //
-    //     // stake from bob
-    //     let coins =
-    //         coin::withdraw<StakeCoin>(&bob_acc, 500000);
-    //     stake_lb::stake<RewardCoin>(&bob_acc, @harvest, coins);
-    //
-    //     // check bob stake unlock time
-    //     let unlock_time = stake_lb::get_unlock_time<RewardCoin>(@harvest, @bob);
-    //     assert!(unlock_time == START_TIME + WEEK_IN_SECONDS + 100, 1);
-    //
-    //     // stake more from alice before lockup period end
-    //     let coins =
-    //         coin::withdraw<StakeCoin>(&alice_acc, 500000);
-    //     stake_lb::stake<RewardCoin>(&alice_acc, @harvest, coins);
-    //
-    //     // check alice stake unlock time updated
-    //     let unlock_time = stake_lb::get_unlock_time<RewardCoin>(@harvest, @alice);
-    //     assert!(unlock_time == START_TIME + WEEK_IN_SECONDS + 100, 1);
-    //
-    //     // wait one week
-    //     timestamp::update_global_time_for_test_secs(START_TIME + 100 + WEEK_IN_SECONDS);
-    //
-    //     // unstake from alice after lockup period end
-    //     let coins =
-    //         stake_lb::unstake<RewardCoin>(&alice_acc, @harvest, 1000000);
-    //     coin::deposit(@alice, coins);
-    //
-    //     // wait 100 seconds
-    //     timestamp::update_global_time_for_test_secs(START_TIME + 200 + WEEK_IN_SECONDS);
-    //
-    //     // partial unstake from bob after lockup period end
-    //     let coins =
-    //         stake_lb::unstake<RewardCoin>(&bob_acc, @harvest, 250000);
-    //     coin::deposit(@bob, coins);
-    //
-    //     // wait 100 seconds
-    //     timestamp::update_global_time_for_test_secs(START_TIME + 300 + WEEK_IN_SECONDS);
-    //
-    //     // stake more from bob after lockup period end
-    //     let coins =
-    //         coin::withdraw<StakeCoin>(&bob_acc, 500000);
-    //     stake_lb::stake<RewardCoin>(&bob_acc, @harvest, coins);
-    //
-    //     // check bob stake unlock time updated
-    //     let unlock_time = stake_lb::get_unlock_time<RewardCoin>(@harvest, @bob);
-    //     assert!(unlock_time == START_TIME + WEEK_IN_SECONDS + 300 + WEEK_IN_SECONDS, 1);
-    //
-    //     // wait 1 year
-    //     timestamp::update_global_time_for_test_secs(START_TIME + 31536000);
-    //
-    //     // unstake from bob almost year after lockup period end
-    //     let coins =
-    //         stake_lb::unstake<RewardCoin>(&bob_acc, @harvest, 250000);
-    //     coin::deposit(@bob, coins);
-    // }
-    //
-    // #[test]
-    // public fun test_get_start_timestamp() {
-    //     let (harvest, _) = initialize_test();
-    //
-    //     // register staking pool with rewards
-    //     let reward_coins = mint_default_coin<RewardCoin>(604805000000);
-    //     let duration = 604805;
-    //     let start_ts = timestamp::now_seconds();
-    //     stake_lb::register_pool<RewardCoin>(&harvest, reward_coins, duration, option::none());
-    //
-    //     assert!(stake_lb::get_start_timestamp<RewardCoin>(@harvest) == start_ts, 1);
-    //
-    //     timestamp::update_global_time_for_test_secs(START_TIME + WEEK_IN_SECONDS);
-    //     assert!(stake_lb::get_start_timestamp<RewardCoin>(@harvest) == start_ts, 1);
-    // }
-    //
+    #[test]
+    public fun test_stake_lockup_period() {
+        let (harvest, _, st_collection_owner) = initialize_test();
+
+        let alice_acc = new_account(@alice);
+        let bob_acc = new_account(@bob);
+
+        let st_collection_name = string::utf8(b"Liquidswap v1 #1 \"CX\"-\"CY\"-\"X25\"");
+        create_st_collection(signer::address_of(&st_collection_owner), st_collection_name);
+        let bin_id = 1;
+        let token_data_id = create_token_data_id_with_bin_id(&st_collection_owner, st_collection_name, bin_id);
+
+        // register staking pool with rewards
+        let stake_token = mint_stake_token(&st_collection_owner, token_data_id, 1);
+        let reward_coins = mint_default_coin<RewardCoin>(15768000000000);
+        let duration = 15768000;
+        stake_lb::register_pool<RewardCoin>(&harvest, &stake_token, reward_coins, duration, option::none());
+        token::deposit_token(&st_collection_owner, stake_token);
+
+        // stake from alice
+        let split_token = mint_stake_token(&st_collection_owner, token_data_id, 500000);
+        stake_lb::stake<RewardCoin>(&alice_acc, @harvest, split_token);
+
+        // check alice stake unlock time
+        let unlock_time = stake_lb::get_unlock_time<RewardCoin>(@harvest, st_collection_name, @alice);
+        assert!(unlock_time == START_TIME + WEEK_IN_SECONDS, 1);
+
+        // wait 100 seconds
+        timestamp::update_global_time_for_test_secs(START_TIME + 100);
+
+        // stake from bob
+        let split_token = mint_stake_token(&st_collection_owner, token_data_id, 500000);
+        stake_lb::stake<RewardCoin>(&bob_acc, @harvest, split_token);
+
+        // check bob stake unlock time
+        let unlock_time = stake_lb::get_unlock_time<RewardCoin>(@harvest, st_collection_name, @bob);
+        assert!(unlock_time == START_TIME + WEEK_IN_SECONDS + 100, 1);
+
+        // stake more from alice before lockup period end
+        let split_token = mint_stake_token(&st_collection_owner, token_data_id, 500000);
+        stake_lb::stake<RewardCoin>(&alice_acc, @harvest, split_token);
+
+        // check alice stake unlock time updated
+        let unlock_time = stake_lb::get_unlock_time<RewardCoin>(@harvest, st_collection_name, @alice);
+        assert!(unlock_time == START_TIME + WEEK_IN_SECONDS + 100, 1);
+
+        // wait one week
+        timestamp::update_global_time_for_test_secs(START_TIME + 100 + WEEK_IN_SECONDS);
+
+        // unstake from alice after lockup period end
+        let token =
+            stake_lb::unstake<RewardCoin>(&alice_acc, @harvest, st_collection_name, bin_id, 1000000);
+        token::deposit_token(&alice_acc, token);
+
+        // wait 100 seconds
+        timestamp::update_global_time_for_test_secs(START_TIME + 200 + WEEK_IN_SECONDS);
+
+        // partial unstake from bob after lockup period end
+        let token =
+            stake_lb::unstake<RewardCoin>(&bob_acc, @harvest, st_collection_name, bin_id, 250000);
+        token::deposit_token(&bob_acc, token);
+
+        // wait 100 seconds
+        timestamp::update_global_time_for_test_secs(START_TIME + 300 + WEEK_IN_SECONDS);
+
+        // stake more from bob after lockup period end
+        let split_token = mint_stake_token(&st_collection_owner, token_data_id, 500000);
+        stake_lb::stake<RewardCoin>(&bob_acc, @harvest, split_token);
+
+        // check bob stake unlock time updated
+        let unlock_time = stake_lb::get_unlock_time<RewardCoin>(@harvest, st_collection_name, @bob);
+        assert!(unlock_time == START_TIME + WEEK_IN_SECONDS + 300 + WEEK_IN_SECONDS, 1);
+
+        // wait 1 year
+        timestamp::update_global_time_for_test_secs(START_TIME + 31536000);
+
+        // unstake from bob almost year after lockup period end
+        let token =
+            stake_lb::unstake<RewardCoin>(&bob_acc, @harvest, st_collection_name, bin_id, 250000);
+        token::deposit_token(&alice_acc, token);
+    }
+
+    #[test]
+    public fun test_get_start_timestamp() {
+        let (harvest, _, st_collection_owner) = initialize_test();
+
+        let st_collection_name = string::utf8(b"Liquidswap v1 #1 \"CX\"-\"CY\"-\"X25\"");
+        create_st_collection(signer::address_of(&st_collection_owner), st_collection_name);
+        let bin_id = 1;
+        let token_data_id = create_token_data_id_with_bin_id(&st_collection_owner, st_collection_name, bin_id);
+
+        // register staking pool with rewards
+        let stake_token = mint_stake_token(&st_collection_owner, token_data_id, 1);
+        let reward_coins = mint_default_coin<RewardCoin>(604805000000);
+        let duration = 604805;
+        let start_ts = timestamp::now_seconds();
+        stake_lb::register_pool<RewardCoin>(&harvest, &stake_token, reward_coins, duration, option::none());
+        token::deposit_token(&st_collection_owner, stake_token);
+
+        assert!(stake_lb::get_start_timestamp<RewardCoin>(@harvest, st_collection_name) == start_ts, 1);
+
+        timestamp::update_global_time_for_test_secs(START_TIME + WEEK_IN_SECONDS);
+        assert!(stake_lb::get_start_timestamp<RewardCoin>(@harvest, st_collection_name) == start_ts, 1);
+    }
+
     #[test]
     #[expected_failure(abort_code = stake_lb::ERR_NO_POOLS)]
     public fun test_get_start_timestamp_fails_no_pool_exists() {
         let collection_name = string::utf8(b"Liquidswap v1 #1 \"CX\"-\"CY\"-\"X25\"");
         let _ = stake_lb::get_start_timestamp<RewardCoin>(@harvest, collection_name);
     }
-    //
-    // #[test]
-    // public fun test_is_unlocked() {
-    //     let (harvest, _) = initialize_test();
-    //
-    //     let alice_acc = new_account_with_stake_coins(@alice, 500000);
-    //     let bob_acc = new_account_with_stake_coins(@bob, 500000);
-    //
-    //     // register staking pool with rewards
-    //     let reward_coins = mint_default_coin<RewardCoin>(604805000000);
-    //     let duration = 604805;
-    //     stake_lb::register_pool<RewardCoin>(&harvest, reward_coins, duration, option::none());
-    //
-    //     // stake from alice
-    //     let coins =
-    //         coin::withdraw<StakeCoin>(&alice_acc, 500000);
-    //     stake_lb::stake<RewardCoin>(&alice_acc, @harvest, coins);
-    //
-    //     assert!(!stake_lb::is_unlocked<RewardCoin>(@harvest, @alice), 1);
-    //
-    //     // wait almost a week
-    //     timestamp::update_global_time_for_test_secs(START_TIME + WEEK_IN_SECONDS - 1);
-    //
-    //     assert!(!stake_lb::is_unlocked<RewardCoin>(@harvest, @alice), 1);
-    //
-    //     // stake from bob
-    //     let coins =
-    //         coin::withdraw<StakeCoin>(&bob_acc, 500000);
-    //     stake_lb::stake<RewardCoin>(&bob_acc, @harvest, coins);
-    //
-    //     assert!(!stake_lb::is_unlocked<RewardCoin>(@harvest, @bob), 1);
-    //
-    //     // wait a second
-    //     timestamp::update_global_time_for_test_secs(START_TIME + WEEK_IN_SECONDS);
-    //
-    //     assert!(stake_lb::is_unlocked<RewardCoin>(@harvest, @alice), 1);
-    //     assert!(!stake_lb::is_unlocked<RewardCoin>(@harvest, @bob), 1);
-    // }
-    //
+
+    #[test]
+    public fun test_is_unlocked() {
+        let (harvest, _, st_collection_owner) = initialize_test();
+
+        let alice_acc = new_account(@alice);
+        let bob_acc = new_account(@bob);
+
+        let st_collection_name = string::utf8(b"Liquidswap v1 #1 \"CX\"-\"CY\"-\"X25\"");
+        create_st_collection(signer::address_of(&st_collection_owner), st_collection_name);
+        let bin_id = 1;
+        let token_data_id = create_token_data_id_with_bin_id(&st_collection_owner, st_collection_name, bin_id);
+
+        // register staking pool with rewards
+        let stake_token = mint_stake_token(&st_collection_owner, token_data_id, 1);
+        let reward_coins = mint_default_coin<RewardCoin>(604805000000);
+        let duration = 604805;
+        stake_lb::register_pool<RewardCoin>(&harvest, &stake_token, reward_coins, duration, option::none());
+        token::deposit_token(&st_collection_owner, stake_token);
+
+        // stake from alice
+        let split_token = mint_stake_token(&st_collection_owner, token_data_id, 500000);
+        stake_lb::stake<RewardCoin>(&alice_acc, @harvest, split_token);
+
+        assert!(!stake_lb::is_unlocked<RewardCoin>(@harvest, st_collection_name, @alice), 1);
+
+        // wait almost a week
+        timestamp::update_global_time_for_test_secs(START_TIME + WEEK_IN_SECONDS - 1);
+
+        assert!(!stake_lb::is_unlocked<RewardCoin>(@harvest, st_collection_name, @alice), 1);
+
+        // stake from bob
+        let split_token = mint_stake_token(&st_collection_owner, token_data_id, 500000);
+        stake_lb::stake<RewardCoin>(&bob_acc, @harvest, split_token);
+
+        assert!(!stake_lb::is_unlocked<RewardCoin>(@harvest, st_collection_name, @bob), 1);
+
+        // wait a second
+        timestamp::update_global_time_for_test_secs(START_TIME + WEEK_IN_SECONDS);
+
+        assert!(stake_lb::is_unlocked<RewardCoin>(@harvest, st_collection_name, @alice), 1);
+        assert!(!stake_lb::is_unlocked<RewardCoin>(@harvest, st_collection_name, @bob), 1);
+    }
+
     // #[test]
     // public fun test_reward_calculation() {
     //     let (harvest, _) = initialize_test();
@@ -532,7 +555,7 @@ module harvest::stake_lb_tests {
     //     // register staking pool with rewards
     //     let reward_coins = mint_default_coin<RewardCoin>(157680000000000);
     //     let duration = 15768000;
-    //     stake_lb::register_pool<RewardCoin>(&harvest, reward_coins, duration, option::none());
+    //     stake_lb::register_pool<RewardCoin>(&harvest, &stake_token, reward_coins, duration, option::none());
     //
     //     // stake 100 StakeCoins from alice
     //     let coins =
@@ -687,7 +710,7 @@ module harvest::stake_lb_tests {
     //     // register staking pool with rewards
     //     let reward_coins = mint_default_coin<RewardCoin>(157680000000000);
     //     let duration = 15768000;
-    //     stake_lb::register_pool<RewardCoin>(&harvest, reward_coins, duration, option::none());
+    //     stake_lb::register_pool<RewardCoin>(&harvest, &stake_token, reward_coins, duration, option::none());
     //
     //     // wait one week with empty pool
     //     timestamp::update_global_time_for_test_secs(START_TIME + WEEK_IN_SECONDS);
@@ -884,38 +907,87 @@ module harvest::stake_lb_tests {
         coin::deposit<RewardCoin>(@bob, coins);
     }
 
-    // #[test]
-    // public fun test_harvest_works_after_pool_duration_end() {
-    //     let (harvest, _) = initialize_test();
-    //
-    //     let alice_acc = new_account_with_stake_coins(@alice, 100000000);
-    //
-    //     coin::register<RewardCoin>(&alice_acc);
-    //
-    //     // register staking pool with rewards
-    //     let reward_coins = mint_default_coin<RewardCoin>(157680000000000);
-    //     let duration = 15768000;
-    //     stake_lb::register_pool<RewardCoin>(&harvest, reward_coins, duration, option::none());
-    //
-    //     // stake 100 StakeCoins from alice
-    //     let coins =
-    //         coin::withdraw<StakeCoin>(&alice_acc, 100000000);
-    //     stake_lb::stake<RewardCoin>(&alice_acc, @harvest, coins);
-    //
-    //     // wait until pool expired and a week more
-    //     timestamp::update_global_time_for_test_secs(START_TIME + duration + WEEK_IN_SECONDS);
-    //
-    //     // harvest from alice
-    //     let coins =
-    //         stake_lb::harvest<RewardCoin>(&alice_acc, @harvest);
-    //
-    //     // check amounts
-    //     assert!(stake_lb::get_pending_user_rewards<RewardCoin>(@harvest, @alice) == 0, 1);
-    //     assert!(coin::value(&coins) == 157680000000000, 1);
-    //
-    //     coin::deposit<RewardCoin>(@alice, coins);
-    // }
-    //
+    #[test]
+    public fun test_harvest_works_after_pool_duration_end_with_one_bin_id() {
+        let (harvest, _, collection_owner) = initialize_test();
+
+        let alice_acc = new_account(@alice);
+
+        let collection_name = string::utf8(b"Liquidswap v1 #1 \"CX\"-\"CY\"-\"X25\"");
+        create_st_collection(signer::address_of(&collection_owner), collection_name);
+        let bin_id_1 = 1;
+        let token_data_id_1 = create_token_data_id_with_bin_id(&collection_owner, collection_name, bin_id_1);
+
+        coin::register<RewardCoin>(&alice_acc);
+
+        // register staking pool with rewards
+        let stake_token = mint_stake_token(&collection_owner, token_data_id_1, 1);
+        let reward_coins = mint_default_coin<RewardCoin>(157680000000000);
+        let duration = 15768000;
+        stake_lb::register_pool<RewardCoin>(&harvest, &stake_token, reward_coins, duration, option::none());
+        token::deposit_token(&collection_owner, stake_token);
+
+        // stake 100 StakeCoins from alice
+        let split_token = mint_stake_token(&collection_owner, token_data_id_1, 100000000);
+        stake_lb::stake<RewardCoin>(&alice_acc, @harvest, split_token);
+
+        // wait until pool expired and a week more
+        timestamp::update_global_time_for_test_secs(START_TIME + duration + WEEK_IN_SECONDS);
+
+        // harvest from alice
+        let coins =
+            stake_lb::harvest<RewardCoin>(&alice_acc, @harvest, collection_name);
+
+        // check amounts
+        assert!(stake_lb::get_pending_user_rewards<RewardCoin>(@harvest, collection_name, @alice) == 0, 1);
+        assert!(coin::value(&coins) == 157680000000000, 1);
+
+        coin::deposit<RewardCoin>(@alice, coins);
+    }
+
+    #[test]
+    public fun test_harvest_works_after_pool_duration_end_with_two_bin_id() {
+        let (harvest, _, collection_owner) = initialize_test();
+
+        let alice_acc = new_account(@alice);
+
+        let collection_name = string::utf8(b"Liquidswap v1 #1 \"CX\"-\"CY\"-\"X25\"");
+        create_st_collection(signer::address_of(&collection_owner), collection_name);
+        let bin_id_1 = 1;
+        let bin_id_2 = 2;
+        let token_data_id_1 = create_token_data_id_with_bin_id(&collection_owner, collection_name, bin_id_1);
+        let token_data_id_2 = create_token_data_id_with_bin_id(&collection_owner, collection_name, bin_id_2);
+        mint_token(&collection_owner, token_data_id_2, 1);
+
+        coin::register<RewardCoin>(&alice_acc);
+
+        // register staking pool with rewards
+        let stake_token = mint_stake_token(&collection_owner, token_data_id_1, 1);
+        let reward_coins = mint_default_coin<RewardCoin>(157680000000000);
+        let duration = 15768000;
+        stake_lb::register_pool<RewardCoin>(&harvest, &stake_token, reward_coins, duration, option::none());
+        token::deposit_token(&collection_owner, stake_token);
+
+        // stake 100 StakeCoins from alice
+        let split_token_1 = mint_stake_token(&collection_owner, token_data_id_1, 50000000);
+        let split_token_2 = mint_stake_token(&collection_owner, token_data_id_2, 50000000);
+        stake_lb::stake<RewardCoin>(&alice_acc, @harvest, split_token_1);
+        stake_lb::stake<RewardCoin>(&alice_acc, @harvest, split_token_2);
+
+        // wait until pool expired and a week more
+        timestamp::update_global_time_for_test_secs(START_TIME + duration + WEEK_IN_SECONDS);
+
+        // harvest from alice
+        let coins =
+            stake_lb::harvest<RewardCoin>(&alice_acc, @harvest, collection_name);
+
+        // check amounts
+        assert!(stake_lb::get_pending_user_rewards<RewardCoin>(@harvest, collection_name, @alice) == 0, 1);
+        assert!(coin::value(&coins) == 157680000000000, 1);
+
+        coin::deposit<RewardCoin>(@alice, coins);
+    }
+
     // #[test]
     // public fun test_stake_and_harvest_for_pool_less_than_week_duration() {
     //     let (harvest, _) = initialize_test();
@@ -928,7 +1000,7 @@ module harvest::stake_lb_tests {
     //
     //     let reward_coins = mint_default_coin<RewardCoin>(302400000000);
     //     let duration = 604800;
-    //     stake_lb::register_pool<RewardCoin>(&harvest, reward_coins, duration, option::none());
+    //     stake_lb::register_pool<RewardCoin>(&harvest, &stake_token, reward_coins, duration, option::none());
     //
     //     let coins =
     //         coin::withdraw<StakeCoin>(&alice_acc, 100000000);
@@ -967,147 +1039,351 @@ module harvest::stake_lb_tests {
     //     assert!(stake_lb::get_pending_user_rewards<RewardCoin>(@harvest, @bob) == 0, 1);
     //     assert!(stake_lb::get_pending_user_rewards<RewardCoin>(@harvest, @alice) == 0, 1);
     // }
-    //
-    // #[test]
-    // public fun test_stake_and_harvest_big_real_values() {
-    //     // well, really i just want to test large numbers with 8 decimals, so this why we have billions.
-    //     let (harvest, _) = initialize_test();
-    //
-    //     // 900b of coins.
-    //     let alice_acc = new_account_with_stake_coins(@alice, 900000000000000000);
-    //     // 100b of coins.
-    //     let bob_acc = new_account_with_stake_coins(@bob, 100000000000000000);
-    //
-    //     coin::register<RewardCoin>(&alice_acc);
-    //     coin::register<RewardCoin>(&bob_acc);
-    //
-    //     // 1000b of coins
-    //     let reward_coins = mint_default_coin<RewardCoin>(1000000000000000000);
-    //     // 1 week.
-    //     let duration = WEEK_IN_SECONDS;
-    //     stake_lb::register_pool<RewardCoin>(&harvest, reward_coins, duration, option::none());
-    //
-    //     // stake alice.
-    //     let coins =
-    //         coin::withdraw<StakeCoin>(&alice_acc, 90000000000000000);
-    //     stake_lb::stake<RewardCoin>(&alice_acc, @harvest, coins);
-    //
-    //     // stake bob.
-    //     let coins =
-    //         coin::withdraw<StakeCoin>(&bob_acc, 10000000000000000);
-    //     stake_lb::stake<RewardCoin>(&bob_acc, @harvest, coins);
-    //
-    //     timestamp::update_global_time_for_test_secs(START_TIME + duration / 2);
-    //
-    //     // harvest first time.
-    //     let coins =
-    //         stake_lb::harvest<RewardCoin>(&alice_acc, @harvest);
-    //     coin::deposit<RewardCoin>(@alice, coins);
-    //     let coins =
-    //         stake_lb::harvest<RewardCoin>(&bob_acc, @harvest);
-    //     coin::deposit<RewardCoin>(@bob, coins);
-    //
-    //     timestamp::update_global_time_for_test_secs(START_TIME + duration);
-    //
-    //     // harvest second time.
-    //     let coins =
-    //         stake_lb::harvest<RewardCoin>(&alice_acc, @harvest);
-    //     coin::deposit<RewardCoin>(@alice, coins);
-    //     let coins =
-    //         stake_lb::harvest<RewardCoin>(&bob_acc, @harvest);
-    //     coin::deposit<RewardCoin>(@bob, coins);
-    //
-    //     // unstake.
-    //     let coins =
-    //         stake_lb::unstake<RewardCoin>(&alice_acc, @harvest, 90000000000000000);
-    //     coin::deposit<StakeCoin>(@alice, coins);
-    //
-    //     let coins =
-    //         stake_lb::unstake<RewardCoin>(&bob_acc, @harvest, 10000000000000000);
-    //     coin::deposit<StakeCoin>(@bob, coins);
-    // }
-    //
-    // #[test]
-    // public fun test_stake_and_harvest_big_real_values_long_time() {
-    //     // well, really i just want to test large numbers with 8 decimals, so this why we have billions.
-    //     let (harvest, _) = initialize_test();
-    //
-    //     // 900b of coins.
-    //     let alice_acc = new_account_with_stake_coins(@alice, 900000000000000000);
-    //     // 100b of coins.
-    //     let bob_acc = new_account_with_stake_coins(@bob, 100000000000000000);
-    //
-    //     coin::register<RewardCoin>(&alice_acc);
-    //     coin::register<RewardCoin>(&bob_acc);
-    //
-    //     // 1000b of coins
-    //     let reward_coins = mint_default_coin<RewardCoin>(1000000000000000000);
-    //     // 10 years.
-    //     let duration = 31536000 * 10;
-    //     stake_lb::register_pool<RewardCoin>(&harvest, reward_coins, duration, option::none());
-    //
-    //     // stake alice.
-    //     let coins =
-    //         coin::withdraw<StakeCoin>(&alice_acc, 90000000000000000);
-    //     stake_lb::stake<RewardCoin>(&alice_acc, @harvest, coins);
-    //
-    //     // stake bob.
-    //     let coins =
-    //         coin::withdraw<StakeCoin>(&bob_acc, 10000000000000000);
-    //     stake_lb::stake<RewardCoin>(&bob_acc, @harvest, coins);
-    //
-    //     timestamp::update_global_time_for_test_secs(START_TIME + duration);
-    //
-    //     let coins =
-    //         stake_lb::harvest<RewardCoin>(&alice_acc, @harvest);
-    //     coin::deposit<RewardCoin>(@alice, coins);
-    //     let coins =
-    //         stake_lb::harvest<RewardCoin>(&bob_acc, @harvest);
-    //     coin::deposit<RewardCoin>(@bob, coins);
-    //
-    //     // unstake.
-    //     let coins =
-    //         stake_lb::unstake<RewardCoin>(&alice_acc, @harvest, 90000000000000000);
-    //     coin::deposit<StakeCoin>(@alice, coins);
-    //
-    //     let coins =
-    //         stake_lb::unstake<RewardCoin>(&bob_acc, @harvest, 10000000000000000);
-    //     coin::deposit<StakeCoin>(@bob, coins);
-    // }
-    //
-    // #[test]
-    // public fun test_stake_and_get_all_rewards_from_start_to_end() {
-    //     let (harvest, _) = initialize_test();
-    //
-    //     let alice_acc = new_account_with_stake_coins(@alice, 100000000);
-    //
-    //     coin::register<RewardCoin>(&alice_acc);
-    //
-    //     // register staking pool with rewards
-    //     let reward_coins_val = 157680000000000;
-    //     let reward_coins = mint_default_coin<RewardCoin>(reward_coins_val);
-    //     let duration = 15768000;
-    //     stake_lb::register_pool<RewardCoin>(&harvest, reward_coins, duration, option::none());
-    //
-    //     // stake 100 StakeCoins from alice
-    //     let coins =
-    //         coin::withdraw<StakeCoin>(&alice_acc, 100000000);
-    //     stake_lb::stake<RewardCoin>(&alice_acc, @harvest, coins);
-    //
-    //     // wait until pool expired
-    //     timestamp::update_global_time_for_test_secs(START_TIME + duration);
-    //
-    //     // harvest from alice
-    //     let coins =
-    //         stake_lb::harvest<RewardCoin>(&alice_acc, @harvest);
-    //
-    //     // check amounts
-    //     assert!(stake_lb::get_pending_user_rewards<RewardCoin>(@harvest, @alice) == 0, 1);
-    //     assert!(coin::value(&coins) == reward_coins_val, 1);
-    //
-    //     coin::deposit<RewardCoin>(@alice, coins);
-    // }
-    //
+
+    #[test]
+    public fun test_stake_and_harvest_big_real_values_with_one_bin_id() {
+        // well, really i just want to test large numbers with 8 decimals, so this why we have billions.
+        let (harvest, _, collection_owner) = initialize_test();
+
+        // 900b of coins.
+        let alice_acc = new_account(@alice);
+        // 100b of coins.
+        let bob_acc = new_account(@bob);
+
+        let collection_name = string::utf8(b"Liquidswap v1 #1 \"CX\"-\"CY\"-\"X25\"");
+        create_st_collection(signer::address_of(&collection_owner), collection_name);
+        let bin_id_1 = 1;
+        let token_data_id_1 = create_token_data_id_with_bin_id(&collection_owner, collection_name, bin_id_1);
+        mint_token(&collection_owner, token_data_id_1, 1);
+
+        coin::register<RewardCoin>(&alice_acc);
+        coin::register<RewardCoin>(&bob_acc);
+
+        // 1000b of coins
+        let stake_token = mint_stake_token(&collection_owner, token_data_id_1, 1);
+        let reward_coins = mint_default_coin<RewardCoin>(1000000000000000000);
+        // 1 week.
+        let duration = WEEK_IN_SECONDS;
+        stake_lb::register_pool<RewardCoin>(&harvest, &stake_token, reward_coins, duration, option::none());
+        token::deposit_token(&collection_owner, stake_token);
+
+        // stake alice.
+        let split_token = mint_stake_token(&collection_owner, token_data_id_1, 90000000000000000);
+        stake_lb::stake<RewardCoin>(&alice_acc, @harvest, split_token);
+
+        // stake bob.
+        let split_token = mint_stake_token(&collection_owner, token_data_id_1, 10000000000000000);
+        stake_lb::stake<RewardCoin>(&bob_acc, @harvest, split_token);
+
+        timestamp::update_global_time_for_test_secs(START_TIME + duration / 2);
+
+        // harvest first time.
+        let coins =
+            stake_lb::harvest<RewardCoin>(&alice_acc, @harvest, collection_name);
+        coin::deposit<RewardCoin>(@alice, coins);
+        let coins =
+            stake_lb::harvest<RewardCoin>(&bob_acc, @harvest, collection_name);
+        coin::deposit<RewardCoin>(@bob, coins);
+
+        timestamp::update_global_time_for_test_secs(START_TIME + duration);
+
+        // harvest second time.
+        let coins =
+            stake_lb::harvest<RewardCoin>(&alice_acc, @harvest, collection_name);
+        coin::deposit<RewardCoin>(@alice, coins);
+        let coins =
+            stake_lb::harvest<RewardCoin>(&bob_acc, @harvest, collection_name);
+        coin::deposit<RewardCoin>(@bob, coins);
+
+        // unstake.
+        let token =
+            stake_lb::unstake<RewardCoin>(&alice_acc, @harvest, collection_name, bin_id_1, 90000000000000000);
+        token::deposit_token(&alice_acc, token);
+
+        let token =
+            stake_lb::unstake<RewardCoin>(&bob_acc, @harvest, collection_name, bin_id_1, 10000000000000000);
+        token::deposit_token(&bob_acc, token);
+    }
+
+    #[test]
+    public fun test_stake_and_harvest_big_real_values_with_two_bin_id() {
+        // well, really i just want to test large numbers with 8 decimals, so this why we have billions.
+        let (harvest, _, collection_owner) = initialize_test();
+
+        // 900b of coins.
+        let alice_acc = new_account(@alice);
+        // 100b of coins.
+        let bob_acc = new_account(@bob);
+
+        let collection_name = string::utf8(b"Liquidswap v1 #1 \"CX\"-\"CY\"-\"X25\"");
+        create_st_collection(signer::address_of(&collection_owner), collection_name);
+        let bin_id_1 = 1;
+        let bin_id_2 = 2;
+        let token_data_id_1 = create_token_data_id_with_bin_id(&collection_owner, collection_name, bin_id_1);
+        let token_data_id_2 = create_token_data_id_with_bin_id(&collection_owner, collection_name, bin_id_2);
+        mint_token(&collection_owner, token_data_id_2, 1);
+
+        coin::register<RewardCoin>(&alice_acc);
+        coin::register<RewardCoin>(&bob_acc);
+
+        // 1000b of coins
+        let stake_token = mint_stake_token(&collection_owner, token_data_id_1, 1);
+        let reward_coins = mint_default_coin<RewardCoin>(1000000000000000000);
+        // 1 week.
+        let duration = WEEK_IN_SECONDS;
+        stake_lb::register_pool<RewardCoin>(&harvest, &stake_token, reward_coins, duration, option::none());
+        token::deposit_token(&collection_owner, stake_token);
+
+        // stake alice.
+        let split_token = mint_stake_token(&collection_owner, token_data_id_1, 90000000000000000);
+        stake_lb::stake<RewardCoin>(&alice_acc, @harvest, split_token);
+        let split_token = mint_stake_token(&collection_owner, token_data_id_2, 90000000000000000);
+        stake_lb::stake<RewardCoin>(&alice_acc, @harvest, split_token);
+
+        // stake bob.
+        let split_token = mint_stake_token(&collection_owner, token_data_id_1, 10000000000000000);
+        stake_lb::stake<RewardCoin>(&bob_acc, @harvest, split_token);
+        let split_token = mint_stake_token(&collection_owner, token_data_id_2, 10000000000000000);
+        stake_lb::stake<RewardCoin>(&bob_acc, @harvest, split_token);
+
+        timestamp::update_global_time_for_test_secs(START_TIME + duration / 2);
+
+        // harvest first time.
+        let coins =
+            stake_lb::harvest<RewardCoin>(&alice_acc, @harvest, collection_name);
+        coin::deposit<RewardCoin>(@alice, coins);
+        let coins =
+            stake_lb::harvest<RewardCoin>(&bob_acc, @harvest, collection_name);
+        coin::deposit<RewardCoin>(@bob, coins);
+
+        timestamp::update_global_time_for_test_secs(START_TIME + duration);
+
+        // harvest second time.
+        let coins =
+            stake_lb::harvest<RewardCoin>(&alice_acc, @harvest, collection_name);
+        coin::deposit<RewardCoin>(@alice, coins);
+        let coins =
+            stake_lb::harvest<RewardCoin>(&bob_acc, @harvest, collection_name);
+        coin::deposit<RewardCoin>(@bob, coins);
+
+        // unstake.
+        let token =
+            stake_lb::unstake<RewardCoin>(&alice_acc, @harvest, collection_name, bin_id_1, 90000000000000000);
+        token::deposit_token(&alice_acc, token);
+        let token =
+            stake_lb::unstake<RewardCoin>(&alice_acc, @harvest, collection_name, bin_id_2, 90000000000000000);
+        token::deposit_token(&alice_acc, token);
+
+        let token =
+            stake_lb::unstake<RewardCoin>(&bob_acc, @harvest, collection_name, bin_id_1, 10000000000000000);
+        token::deposit_token(&bob_acc, token);
+        let token =
+            stake_lb::unstake<RewardCoin>(&bob_acc, @harvest, collection_name, bin_id_2, 10000000000000000);
+        token::deposit_token(&bob_acc, token);
+    }
+
+    #[test]
+    public fun test_stake_and_harvest_big_real_values_long_time_with_one_bin_id() {
+        // well, really i just want to test large numbers with 8 decimals, so this why we have billions.
+        let (harvest, _, collection_owner) = initialize_test();
+
+        // 900b of coins.
+        let alice_acc = new_account(@alice);
+        // 100b of coins.
+        let bob_acc = new_account(@bob);
+
+        let collection_name = string::utf8(b"Liquidswap v1 #1 \"CX\"-\"CY\"-\"X25\"");
+        create_st_collection(signer::address_of(&collection_owner), collection_name);
+        let bin_id_1 = 1;
+        let token_data_id_1 = create_token_data_id_with_bin_id(&collection_owner, collection_name, bin_id_1);
+
+        coin::register<RewardCoin>(&alice_acc);
+        coin::register<RewardCoin>(&bob_acc);
+
+        // 1000b of coins
+        let stake_token = mint_stake_token(&collection_owner, token_data_id_1, 1);
+        let reward_coins = mint_default_coin<RewardCoin>(1000000000000000000);
+        // 10 years.
+        let duration = 31536000 * 10;
+        stake_lb::register_pool<RewardCoin>(&harvest, &stake_token, reward_coins, duration, option::none());
+        token::deposit_token(&collection_owner, stake_token);
+
+        // stake alice.
+        let split_token = mint_stake_token(&collection_owner, token_data_id_1, 90000000000000000);
+        stake_lb::stake<RewardCoin>(&alice_acc, @harvest, split_token);
+
+        // stake bob.
+        let split_token = mint_stake_token(&collection_owner, token_data_id_1, 10000000000000000);
+        stake_lb::stake<RewardCoin>(&bob_acc, @harvest, split_token);
+
+        timestamp::update_global_time_for_test_secs(START_TIME + duration);
+
+        let coins =
+            stake_lb::harvest<RewardCoin>(&alice_acc, @harvest, collection_name);
+        coin::deposit<RewardCoin>(@alice, coins);
+        let coins =
+            stake_lb::harvest<RewardCoin>(&bob_acc, @harvest, collection_name);
+        coin::deposit<RewardCoin>(@bob, coins);
+
+        // unstake.
+        let token =
+            stake_lb::unstake<RewardCoin>(&alice_acc, @harvest, collection_name, bin_id_1, 90000000000000000);
+        token::deposit_token(&alice_acc, token);
+
+        let token =
+            stake_lb::unstake<RewardCoin>(&bob_acc, @harvest, collection_name, bin_id_1, 10000000000000000);
+        token::deposit_token(&bob_acc, token);
+    }
+
+    #[test]
+    public fun test_stake_and_harvest_big_real_values_long_time_with_two_bin_id() {
+        // well, really i just want to test large numbers with 8 decimals, so this why we have billions.
+        let (harvest, _, collection_owner) = initialize_test();
+
+        // 900b of coins.
+        let alice_acc = new_account(@alice);
+        // 100b of coins.
+        let bob_acc = new_account(@bob);
+
+        let collection_name = string::utf8(b"Liquidswap v1 #1 \"CX\"-\"CY\"-\"X25\"");
+        create_st_collection(signer::address_of(&collection_owner), collection_name);
+        let bin_id_1 = 1;
+        let bin_id_2 = 2;
+        let token_data_id_1 = create_token_data_id_with_bin_id(&collection_owner, collection_name, bin_id_1);
+        let token_data_id_2 = create_token_data_id_with_bin_id(&collection_owner, collection_name, bin_id_2);
+        mint_token(&collection_owner, token_data_id_2, 1);
+
+        coin::register<RewardCoin>(&alice_acc);
+        coin::register<RewardCoin>(&bob_acc);
+
+        // 1000b of coins
+        let stake_token = mint_stake_token(&collection_owner, token_data_id_1, 1);
+        let reward_coins = mint_default_coin<RewardCoin>(1000000000000000000);
+        // 10 years.
+        let duration = 31536000 * 10;
+        stake_lb::register_pool<RewardCoin>(&harvest, &stake_token, reward_coins, duration, option::none());
+        token::deposit_token(&collection_owner, stake_token);
+
+        // stake alice.
+        let split_token = mint_stake_token(&collection_owner, token_data_id_1, 90000000000000000);
+        stake_lb::stake<RewardCoin>(&alice_acc, @harvest, split_token);
+        let split_token = mint_stake_token(&collection_owner, token_data_id_2, 90000000000000000);
+        stake_lb::stake<RewardCoin>(&alice_acc, @harvest, split_token);
+
+        // stake bob.
+        let split_token = mint_stake_token(&collection_owner, token_data_id_1, 10000000000000000);
+        stake_lb::stake<RewardCoin>(&bob_acc, @harvest, split_token);
+        let split_token = mint_stake_token(&collection_owner, token_data_id_2, 10000000000000000);
+        stake_lb::stake<RewardCoin>(&bob_acc, @harvest, split_token);
+
+        timestamp::update_global_time_for_test_secs(START_TIME + duration);
+
+        let coins =
+            stake_lb::harvest<RewardCoin>(&alice_acc, @harvest, collection_name);
+        coin::deposit<RewardCoin>(@alice, coins);
+        let coins =
+            stake_lb::harvest<RewardCoin>(&bob_acc, @harvest, collection_name);
+        coin::deposit<RewardCoin>(@bob, coins);
+
+        // unstake.
+        let token =
+            stake_lb::unstake<RewardCoin>(&alice_acc, @harvest, collection_name, bin_id_1, 90000000000000000);
+        token::deposit_token(&alice_acc, token);
+        let token =
+            stake_lb::unstake<RewardCoin>(&alice_acc, @harvest, collection_name, bin_id_2, 90000000000000000);
+        token::deposit_token(&alice_acc, token);
+
+        let token =
+            stake_lb::unstake<RewardCoin>(&bob_acc, @harvest, collection_name, bin_id_1, 10000000000000000);
+        token::deposit_token(&bob_acc, token);
+        let token =
+            stake_lb::unstake<RewardCoin>(&bob_acc, @harvest, collection_name, bin_id_2, 10000000000000000);
+        token::deposit_token(&bob_acc, token);
+    }
+
+    #[test]
+    public fun test_stake_and_get_all_rewards_from_start_to_end_with_one_bin_id() {
+        let (harvest, _, collection_owner) = initialize_test();
+
+        let alice_acc = new_account(@alice);
+
+        let collection_name = string::utf8(b"Liquidswap v1 #1 \"CX\"-\"CY\"-\"X25\"");
+        create_st_collection(signer::address_of(&collection_owner), collection_name);
+        let bin_id_1 = 1;
+        let token_data_id_1 = create_token_data_id_with_bin_id(&collection_owner, collection_name, bin_id_1);
+
+        coin::register<RewardCoin>(&alice_acc);
+
+        // register staking pool with rewards
+        let stake_token = mint_stake_token(&collection_owner, token_data_id_1, 1);
+        let reward_coins_val = 157680000000000;
+        let reward_coins = mint_default_coin<RewardCoin>(reward_coins_val);
+        let duration = 15768000;
+        stake_lb::register_pool<RewardCoin>(&harvest, &stake_token, reward_coins, duration, option::none());
+        token::deposit_token(&collection_owner, stake_token);
+
+        // stake 100 StakeCoins from alice
+        let split_token = mint_stake_token(&collection_owner, token_data_id_1, 100000000);
+        stake_lb::stake<RewardCoin>(&alice_acc, @harvest, split_token);
+
+        // wait until pool expired
+        timestamp::update_global_time_for_test_secs(START_TIME + duration);
+
+        // harvest from alice
+        let coins =
+            stake_lb::harvest<RewardCoin>(&alice_acc, @harvest, collection_name);
+
+        // check amounts
+        assert!(stake_lb::get_pending_user_rewards<RewardCoin>(@harvest, collection_name, @alice) == 0, 1);
+        assert!(coin::value(&coins) == reward_coins_val, 1);
+
+        coin::deposit<RewardCoin>(@alice, coins);
+    }
+
+    #[test]
+    public fun test_stake_and_get_all_rewards_from_start_to_end_with_two_bin_id() {
+        let (harvest, _, collection_owner) = initialize_test();
+
+        let alice_acc = new_account(@alice);
+
+        let collection_name = string::utf8(b"Liquidswap v1 #1 \"CX\"-\"CY\"-\"X25\"");
+        create_st_collection(signer::address_of(&collection_owner), collection_name);
+        let bin_id_1 = 1;
+        let bin_id_2 = 2;
+        let token_data_id_1 = create_token_data_id_with_bin_id(&collection_owner, collection_name, bin_id_1);
+        let token_data_id_2 = create_token_data_id_with_bin_id(&collection_owner, collection_name, bin_id_2);
+        mint_token(&collection_owner, token_data_id_2, 1);
+
+        coin::register<RewardCoin>(&alice_acc);
+
+        // register staking pool with rewards
+        let stake_token = mint_stake_token(&collection_owner, token_data_id_1, 1);
+        let reward_coins_val = 157680000000000;
+        let reward_coins = mint_default_coin<RewardCoin>(reward_coins_val);
+        let duration = 15768000;
+        stake_lb::register_pool<RewardCoin>(&harvest, &stake_token, reward_coins, duration, option::none());
+        token::deposit_token(&collection_owner, stake_token);
+
+        // stake 100 StakeCoins from alice
+        let split_token_1 = mint_stake_token(&collection_owner, token_data_id_1, 50000000);
+        stake_lb::stake<RewardCoin>(&alice_acc, @harvest, split_token_1);
+        let split_token_2 = mint_stake_token(&collection_owner, token_data_id_2, 50000000);
+        stake_lb::stake<RewardCoin>(&alice_acc, @harvest, split_token_2);
+
+        // wait until pool expired
+        timestamp::update_global_time_for_test_secs(START_TIME + duration);
+
+        // harvest from alice
+        let coins =
+            stake_lb::harvest<RewardCoin>(&alice_acc, @harvest, collection_name);
+
+        // check amounts
+        assert!(stake_lb::get_pending_user_rewards<RewardCoin>(@harvest, collection_name, @alice) == 0, 1);
+        assert!(coin::value(&coins) == reward_coins_val, 1);
+
+        coin::deposit<RewardCoin>(@alice, coins);
+    }
+
     // #[test]
     // public fun test_reward_is_not_accumulating_after_end() {
     //     let (harvest, _) = initialize_test();
@@ -1118,7 +1394,7 @@ module harvest::stake_lb_tests {
     //
     //     let reward_coins = mint_default_coin<RewardCoin>(157680000000000);
     //     let duration = 15768000;
-    //     stake_lb::register_pool<RewardCoin>(&harvest, reward_coins, duration, option::none());
+    //     stake_lb::register_pool<RewardCoin>(&harvest, &stake_token, reward_coins, duration, option::none());
     //
     //     let coins =
     //         coin::withdraw<StakeCoin>(&alice_acc, 100000000);
@@ -1168,167 +1444,257 @@ module harvest::stake_lb_tests {
     //     assert!(accum_reward == 0, 1);
     //     assert!(last_updated == START_TIME + duration + WEEK_IN_SECONDS * 200, 1);
     // }
-    //
-    // #[test]
-    // public fun test_pool_exists() {
-    //     let (harvest, _) = initialize_test();
-    //
-    //     // check pool exists before register
-    //     let exists = stake_lb::pool_exists<RewardCoin>(@harvest);
-    //     assert!(!exists, 1);
-    //
-    //     // register staking pool with rewards
-    //     let reward_coins = mint_default_coin<RewardCoin>(12345);
-    //     let duration = 12345;
-    //     stake_lb::register_pool<RewardCoin>(&harvest, reward_coins, duration, option::none());
-    //
-    //     // check pool exists after register
-    //     let exists = stake_lb::pool_exists<RewardCoin>(@harvest);
-    //     assert!(exists, 1);
-    // }
-    //
-    // #[test]
-    // public fun test_stake_exists() {
-    //     let (harvest, _) = initialize_test();
-    //
-    //     let alice_acc = new_account_with_stake_coins(@alice, 12345);
-    //
-    //     // register staking pool with rewards
-    //     let reward_coins = mint_default_coin<RewardCoin>(12345);
-    //     let duration = 12345;
-    //     stake_lb::register_pool<RewardCoin>(&harvest, reward_coins, duration, option::none());
-    //
-    //     // check stake exists before alice stake
-    //     let exists = stake_lb::stake_exists<RewardCoin>(@harvest, @alice);
-    //     assert!(!exists, 1);
-    //
-    //     // stake from alice
-    //     let coins =
-    //         coin::withdraw<StakeCoin>(&alice_acc, 12345);
-    //     stake_lb::stake<RewardCoin>(&alice_acc, @harvest, coins);
-    //
-    //     // check stake exists after alice stake
-    //     let exists = stake_lb::stake_exists<RewardCoin>(@harvest, @alice);
-    //     assert!(exists, 1);
-    // }
-    //
-    // #[test]
-    // public fun test_get_user_stake() {
-    //     let (harvest, _) = initialize_test();
-    //
-    //     let alice_acc = new_account_with_stake_coins(@alice, 100000000);
-    //
-    //     // register staking pool with rewards
-    //     let reward_coins = mint_default_coin<RewardCoin>(12345);
-    //     let duration = 12345;
-    //     stake_lb::register_pool<RewardCoin>(&harvest, reward_coins, duration, option::none());
-    //
-    //     // stake 50 StakeCoins from alice
-    //     let coins =
-    //         coin::withdraw<StakeCoin>(&alice_acc, 50000000);
-    //     stake_lb::stake<RewardCoin>(&alice_acc, @harvest, coins);
-    //     assert!(stake_lb::get_user_stake<RewardCoin>(@harvest, @alice) == 50000000, 1);
-    //
-    //     // stake 50 StakeCoins more from alice
-    //     let coins =
-    //         coin::withdraw<StakeCoin>(&alice_acc, 50000000);
-    //     stake_lb::stake<RewardCoin>(&alice_acc, @harvest, coins);
-    //     assert!(stake_lb::get_user_stake<RewardCoin>(@harvest, @alice) == 100000000, 1);
-    //
-    //     // wait one week to unstake
-    //     timestamp::update_global_time_for_test_secs(START_TIME + WEEK_IN_SECONDS);
-    //
-    //     // unstake 30 StakeCoins from alice
-    //     let coins =
-    //         stake_lb::unstake<RewardCoin>(&alice_acc, @harvest, 30000000);
-    //     assert!(stake_lb::get_user_stake<RewardCoin>(@harvest, @alice) == 70000000, 1);
-    //     coin::deposit<StakeCoin>(@alice, coins);
-    //
-    //     // unstake all from alice
-    //     let coins =
-    //         stake_lb::unstake<RewardCoin>(&alice_acc, @harvest, 70000000);
-    //     assert!(stake_lb::get_user_stake<RewardCoin>(@harvest, @alice) == 0, 1);
-    //     coin::deposit<StakeCoin>(@alice, coins);
-    // }
-    //
-    // #[test]
-    // public fun test_get_pending_user_rewards() {
-    //     let (harvest, _) = initialize_test();
-    //
-    //     let alice_acc = new_account_with_stake_coins(@alice, 100000000);
-    //
-    //     coin::register<RewardCoin>(&alice_acc);
-    //
-    //     // register staking pool with rewards
-    //     let reward_coins = mint_default_coin<RewardCoin>(15768000000000);
-    //     let duration = 15768000;
-    //     stake_lb::register_pool<RewardCoin>(&harvest, reward_coins, duration, option::none());
-    //
-    //     // stake 100 StakeCoins from alice
-    //     let coins =
-    //         coin::withdraw<StakeCoin>(&alice_acc, 100000000);
-    //     stake_lb::stake<RewardCoin>(&alice_acc, @harvest, coins);
-    //
-    //     // check stake earned and pool accum_reward
-    //     let (_, accum_reward, _, _, _) =
-    //         stake_lb::get_pool_info<RewardCoin>(@harvest);
-    //     assert!(accum_reward == 0, 1);
-    //     assert!(stake_lb::get_pending_user_rewards<RewardCoin>(@harvest, @alice) == 0, 1);
-    //
-    //     // wait one week
-    //     timestamp::update_global_time_for_test_secs(START_TIME + WEEK_IN_SECONDS);
-    //
-    //     // check stake earned
-    //     assert!(stake_lb::get_pending_user_rewards<RewardCoin>(@harvest, @alice) == 604800000000, 1);
-    //
-    //     // check get_pending_user_rewards calculations didn't affect pool accum_reward
-    //     let (_, accum_reward, _, _, _) =
-    //         stake_lb::get_pool_info<RewardCoin>(@harvest);
-    //     assert!(accum_reward == 0, 1);
-    //
-    //     // unstake all 100 StakeCoins from alice
-    //     let coins =
-    //         stake_lb::unstake<RewardCoin>(&alice_acc, @harvest, 100000000);
-    //     coin::deposit(@alice, coins);
-    //
-    //     // wait one week
-    //     timestamp::update_global_time_for_test_secs(START_TIME + WEEK_IN_SECONDS + WEEK_IN_SECONDS);
-    //
-    //     // check stake earned didn't change a week after full unstake
-    //     assert!(stake_lb::get_pending_user_rewards<RewardCoin>(@harvest, @alice) == 604800000000, 1);
-    //
-    //     // harvest from alice
-    //     let coins =
-    //         stake_lb::harvest<RewardCoin>(&alice_acc, @harvest);
-    //     assert!(coin::value(&coins) == 604800000000, 1);
-    //     coin::deposit<RewardCoin>(@alice, coins);
-    //
-    //     // check earned calculations after harvest
-    //     assert!(stake_lb::get_pending_user_rewards<RewardCoin>(@harvest, @alice) == 0, 1);
-    // }
-    //
-    // #[test]
-    // public fun test_get_end_timestamp() {
-    //     let (harvest, _) = initialize_test();
-    //
-    //     // register staking pool with rewards
-    //     let reward_coins = mint_default_coin<RewardCoin>(15768000000000);
-    //     let duration = 15768000;
-    //     stake_lb::register_pool<RewardCoin>(&harvest, reward_coins, duration, option::none());
-    //
-    //     // check pool expiration date
-    //     let end_ts = stake_lb::get_end_timestamp<RewardCoin>(@harvest);
-    //     assert!(end_ts == START_TIME + duration, 1);
-    //
-    //     // deposit more rewards
-    //     let reward_coins = mint_default_coin<RewardCoin>(604800000000);
-    //     stake_lb::deposit_reward_coins<RewardCoin>(&harvest, @harvest, reward_coins, 15768000 + 604800);
-    //
-    //     // check pool expiration date
-    //     let end_ts = stake_lb::get_end_timestamp<RewardCoin>(@harvest);
-    //     assert!(end_ts == START_TIME + duration + 604800, 1);
-    // }
-    //
+
+    #[test]
+    public fun test_pool_exists() {
+        let (harvest, _, collection_owner) = initialize_test();
+
+        let collection_name = string::utf8(b"Liquidswap v1 #1 \"CX\"-\"CY\"-\"X25\"");
+        create_st_collection(signer::address_of(&collection_owner), collection_name);
+        let bin_id_1 = 1;
+        let token_data_id_1 = create_token_data_id_with_bin_id(&collection_owner, collection_name, bin_id_1);
+
+        // check pool exists before register
+        let exists = stake_lb::pool_exists<RewardCoin>(@harvest, collection_name);
+        assert!(!exists, 1);
+
+        // register staking pool with rewards
+        let stake_token = mint_stake_token(&collection_owner, token_data_id_1, 1);
+        let reward_coins = mint_default_coin<RewardCoin>(12345);
+        let duration = 12345;
+        stake_lb::register_pool<RewardCoin>(&harvest, &stake_token, reward_coins, duration, option::none());
+        token::deposit_token(&collection_owner, stake_token);
+
+        // check pool exists after register
+        let exists = stake_lb::pool_exists<RewardCoin>(@harvest, collection_name);
+        assert!(exists, 1);
+    }
+
+    #[test]
+    public fun test_stake_exists() {
+        let (harvest, _, collection_owner) = initialize_test();
+
+        let alice_acc = new_account(@alice);
+        let collection_name = string::utf8(b"Liquidswap v1 #1 \"CX\"-\"CY\"-\"X25\"");
+        create_st_collection(signer::address_of(&collection_owner), collection_name);
+        let bin_id_1 = 1;
+        let token_data_id_1 = create_token_data_id_with_bin_id(&collection_owner, collection_name, bin_id_1);
+
+        // register staking pool with rewards
+        let stake_token = mint_stake_token(&collection_owner, token_data_id_1, 1);
+        let reward_coins = mint_default_coin<RewardCoin>(12345);
+        let duration = 12345;
+        stake_lb::register_pool<RewardCoin>(&harvest, &stake_token, reward_coins, duration, option::none());
+        token::deposit_token(&collection_owner, stake_token);
+
+        // check stake exists before alice stake
+        let exists = stake_lb::stake_exists<RewardCoin>(@harvest, collection_name, @alice);
+        assert!(!exists, 1);
+
+        // stake from alice
+        let split_token = mint_stake_token(&collection_owner, token_data_id_1, 12345);
+        stake_lb::stake<RewardCoin>(&alice_acc, @harvest, split_token);
+
+        // check stake exists after alice stake
+        let exists = stake_lb::stake_exists<RewardCoin>(@harvest, collection_name, @alice);
+        assert!(exists, 1);
+    }
+
+    #[test]
+    public fun test_get_user_stake_with_one_bin_id() {
+        let (harvest, _, collection_owner) = initialize_test();
+
+        let alice_acc = new_account(@alice);
+
+        let collection_name = string::utf8(b"Liquidswap v1 #1 \"CX\"-\"CY\"-\"X25\"");
+        create_st_collection(signer::address_of(&collection_owner), collection_name);
+        let bin_id_1 = 1;
+        let token_data_id_1 = create_token_data_id_with_bin_id(&collection_owner, collection_name, bin_id_1);
+
+        // register staking pool with rewards
+        let stake_token = mint_stake_token(&collection_owner, token_data_id_1, 1);
+        let reward_coins = mint_default_coin<RewardCoin>(12345);
+        let duration = 12345;
+        stake_lb::register_pool<RewardCoin>(&harvest, &stake_token, reward_coins, duration, option::none());
+        token::deposit_token(&collection_owner, stake_token);
+
+        // stake 50 StakeCoins from alice
+        let split_token = mint_stake_token(&collection_owner, token_data_id_1, 50000000);
+        stake_lb::stake<RewardCoin>(&alice_acc, @harvest, split_token);
+
+        assert!(stake_lb::get_user_stake<RewardCoin>(@harvest, collection_name, @alice) == 50000000, 1);
+
+        // stake 50 StakeCoins more from alice
+        let split_token = mint_stake_token(&collection_owner, token_data_id_1, 50000000);
+        stake_lb::stake<RewardCoin>(&alice_acc, @harvest, split_token);
+
+        assert!(stake_lb::get_user_stake<RewardCoin>(@harvest, collection_name, @alice) == 100000000, 1);
+
+        // wait one week to unstake
+        timestamp::update_global_time_for_test_secs(START_TIME + WEEK_IN_SECONDS);
+
+        // unstake 30 StakeCoins from alice
+        let token =
+            stake_lb::unstake<RewardCoin>(&alice_acc, @harvest, collection_name, bin_id_1, 30000000);
+        assert!(stake_lb::get_user_stake<RewardCoin>(@harvest, collection_name, @alice) == 70000000, 1);
+        token::deposit_token(&alice_acc, token);
+
+        // unstake all from alice
+        let token =
+            stake_lb::unstake<RewardCoin>(&alice_acc, @harvest, collection_name, bin_id_1, 70000000);
+        assert!(stake_lb::get_user_stake<RewardCoin>(@harvest, collection_name, @alice) == 0, 1);
+        token::deposit_token(&alice_acc, token);
+    }
+
+    #[test]
+    public fun test_get_user_stake_with_two_bin_id() {
+        let (harvest, _, collection_owner) = initialize_test();
+
+        let alice_acc = new_account(@alice);
+
+        let collection_name = string::utf8(b"Liquidswap v1 #1 \"CX\"-\"CY\"-\"X25\"");
+        create_st_collection(signer::address_of(&collection_owner), collection_name);
+        let bin_id_1 = 1;
+        let bin_id_2 = 2;
+        let token_data_id_1 = create_token_data_id_with_bin_id(&collection_owner, collection_name, bin_id_1);
+        let token_data_id_2 = create_token_data_id_with_bin_id(&collection_owner, collection_name, bin_id_2);
+        mint_token(&collection_owner, token_data_id_2, 1);
+
+        // register staking pool with rewards
+        let stake_token = mint_stake_token(&collection_owner, token_data_id_1, 1);
+        let reward_coins = mint_default_coin<RewardCoin>(12345);
+        let duration = 12345;
+        stake_lb::register_pool<RewardCoin>(&harvest, &stake_token, reward_coins, duration, option::none());
+        token::deposit_token(&collection_owner, stake_token);
+
+        // stake 50 StakeCoins from alice
+        let split_token_1 = mint_stake_token(&collection_owner, token_data_id_1, 25000000);
+        stake_lb::stake<RewardCoin>(&alice_acc, @harvest, split_token_1);
+        let split_token_2 = mint_stake_token(&collection_owner, token_data_id_2, 25000000);
+        stake_lb::stake<RewardCoin>(&alice_acc, @harvest, split_token_2);
+
+        assert!(stake_lb::get_user_stake<RewardCoin>(@harvest, collection_name, @alice) == 50000000, 1);
+
+        // stake 50 StakeCoins more from alice
+        let split_token_1 = mint_stake_token(&collection_owner, token_data_id_1, 25000000);
+        stake_lb::stake<RewardCoin>(&alice_acc, @harvest, split_token_1);
+        let split_token_2 = mint_stake_token(&collection_owner, token_data_id_2, 25000000);
+        stake_lb::stake<RewardCoin>(&alice_acc, @harvest, split_token_2);
+
+        assert!(stake_lb::get_user_stake<RewardCoin>(@harvest, collection_name, @alice) == 100000000, 1);
+
+        // wait one week to unstake
+        timestamp::update_global_time_for_test_secs(START_TIME + WEEK_IN_SECONDS);
+
+        // unstake 50 StakeCoins from alice
+        let token =
+            stake_lb::unstake<RewardCoin>(&alice_acc, @harvest, collection_name, bin_id_1, 50000000);
+        assert!(stake_lb::get_user_stake<RewardCoin>(@harvest, collection_name, @alice) == 50000000, 1);
+        token::deposit_token(&alice_acc, token);
+
+        // unstake all from alice
+        let token =
+            stake_lb::unstake<RewardCoin>(&alice_acc, @harvest, collection_name, bin_id_2, 50000000);
+        assert!(stake_lb::get_user_stake<RewardCoin>(@harvest, collection_name, @alice) == 0, 1);
+        token::deposit_token(&alice_acc, token);
+    }
+
+    #[test]
+    public fun test_get_pending_user_rewards() {
+        let (harvest, _, collection_owner) = initialize_test();
+
+        let alice_acc = new_account(@alice);
+        let collection_name = string::utf8(b"Liquidswap v1 #1 \"CX\"-\"CY\"-\"X25\"");
+        create_st_collection(signer::address_of(&collection_owner), collection_name);
+        let bin_id_1 = 1;
+        let token_data_id_1 = create_token_data_id_with_bin_id(&collection_owner, collection_name, bin_id_1);
+
+        coin::register<RewardCoin>(&alice_acc);
+
+        // register staking pool with rewards
+        let stake_token = mint_stake_token(&collection_owner, token_data_id_1, 1);
+        let reward_coins = mint_default_coin<RewardCoin>(15768000000000);
+        let duration = 15768000;
+        stake_lb::register_pool<RewardCoin>(&harvest, &stake_token, reward_coins, duration, option::none());
+        token::deposit_token(&collection_owner, stake_token);
+
+        // stake 100 StakeCoins from alice
+        let split_token = mint_stake_token(&collection_owner, token_data_id_1, 100000000);
+        stake_lb::stake<RewardCoin>(&alice_acc, @harvest, split_token);
+
+        // check stake earned and pool accum_reward
+        let (_, accum_reward, _, _, _) =
+            stake_lb::get_pool_info<RewardCoin>(@harvest, collection_name);
+        assert!(accum_reward == 0, 1);
+        assert!(stake_lb::get_pending_user_rewards<RewardCoin>(@harvest, collection_name, @alice) == 0, 1);
+
+        // wait one week
+        timestamp::update_global_time_for_test_secs(START_TIME + WEEK_IN_SECONDS);
+
+        // check stake earned
+        assert!(stake_lb::get_pending_user_rewards<RewardCoin>(@harvest, collection_name, @alice) == 604800000000, 1);
+
+        // check get_pending_user_rewards calculations didn't affect pool accum_reward
+        let (_, accum_reward, _, _, _) =
+            stake_lb::get_pool_info<RewardCoin>(@harvest, collection_name);
+        assert!(accum_reward == 0, 1);
+
+        // unstake all 100 StakeCoins from alice
+        let token =
+            stake_lb::unstake<RewardCoin>(&alice_acc, @harvest, collection_name, bin_id_1, 100000000);
+        token::deposit_token(&alice_acc, token);
+
+        // wait one week
+        timestamp::update_global_time_for_test_secs(START_TIME + WEEK_IN_SECONDS + WEEK_IN_SECONDS);
+
+        // check stake earned didn't change a week after full unstake
+        assert!(stake_lb::get_pending_user_rewards<RewardCoin>(@harvest, collection_name, @alice) == 604800000000, 1);
+
+        // harvest from alice
+        let coins =
+            stake_lb::harvest<RewardCoin>(&alice_acc, @harvest, collection_name);
+        assert!(coin::value(&coins) == 604800000000, 1);
+        coin::deposit<RewardCoin>(@alice, coins);
+
+        // check earned calculations after harvest
+        assert!(stake_lb::get_pending_user_rewards<RewardCoin>(@harvest, collection_name, @alice) == 0, 1);
+    }
+
+    #[test]
+    public fun test_get_end_timestamp() {
+        let (harvest, _, collection_owner) = initialize_test();
+
+        let collection_name = string::utf8(b"Liquidswap v1 #1 \"CX\"-\"CY\"-\"X25\"");
+        create_st_collection(signer::address_of(&collection_owner), collection_name);
+        let bin_id_1 = 1;
+        let token_data_id_1 = create_token_data_id_with_bin_id(&collection_owner, collection_name, bin_id_1);
+
+        // register staking pool with rewards
+        let stake_token = mint_stake_token(&collection_owner, token_data_id_1, 1);
+        let reward_coins = mint_default_coin<RewardCoin>(15768000000000);
+        let duration = 15768000;
+        stake_lb::register_pool<RewardCoin>(&harvest, &stake_token, reward_coins, duration, option::none());
+        token::deposit_token(&collection_owner, stake_token);
+
+        // check pool expiration date
+        let end_ts = stake_lb::get_end_timestamp<RewardCoin>(@harvest, collection_name);
+        assert!(end_ts == START_TIME + duration, 1);
+
+        // deposit more rewards
+        let reward_coins = mint_default_coin<RewardCoin>(604800000000);
+        stake_lb::deposit_reward_coins<RewardCoin>(
+            &harvest,
+            @harvest,
+            collection_name,
+            reward_coins,
+            15768000 + 604800
+        );
+
+        // check pool expiration date
+        let end_ts = stake_lb::get_end_timestamp<RewardCoin>(@harvest, collection_name);
+        assert!(end_ts == START_TIME + duration + 604800, 1);
+    }
+
     // #[test]
     // #[expected_failure(abort_code = stake_lb::ERR_NO_POOL)]
     // public fun test_deposit_reward_coins_fails_if_pool_does_not_exist() {
@@ -1443,7 +1809,7 @@ module harvest::stake_lb_tests {
     //     // register staking pool with rewards
     //     let reward_coins = coin::zero<RewardCoin>();
     //     let duration = 12345;
-    //     stake_lb::register_pool<RewardCoin>(&harvest, reward_coins, duration, option::none());
+    //     stake_lb::register_pool<RewardCoin>(&harvest, &stake_token, reward_coins, duration, option::none());
     // }
     //
     // #[test]
@@ -1454,7 +1820,7 @@ module harvest::stake_lb_tests {
     //     // register staking pool with rewards
     //     let reward_coins = mint_default_coin<RewardCoin>(12345);
     //     let duration = 12345;
-    //     stake_lb::register_pool<RewardCoin>(&harvest, reward_coins, duration, option::none());
+    //     stake_lb::register_pool<RewardCoin>(&harvest, &stake_token, reward_coins, duration, option::none());
     //
     //     stake_lb::get_user_stake<RewardCoin>(@harvest, @alice);
     // }
@@ -1467,7 +1833,7 @@ module harvest::stake_lb_tests {
     //     // register staking pool with rewards
     //     let reward_coins = mint_default_coin<RewardCoin>(12345);
     //     let duration = 12345;
-    //     stake_lb::register_pool<RewardCoin>(&harvest, reward_coins, duration, option::none());
+    //     stake_lb::register_pool<RewardCoin>(&harvest, &stake_token, reward_coins, duration, option::none());
     //
     //     stake_lb::get_pending_user_rewards<RewardCoin>(@harvest, @alice);
     // }
@@ -1480,7 +1846,7 @@ module harvest::stake_lb_tests {
     //     // register staking pool with rewards
     //     let reward_coins = mint_default_coin<RewardCoin>(12345);
     //     let duration = 12345;
-    //     stake_lb::register_pool<RewardCoin>(&harvest, reward_coins, duration, option::none());
+    //     stake_lb::register_pool<RewardCoin>(&harvest, &stake_token, reward_coins, duration, option::none());
     //
     //     stake_lb::get_unlock_time<RewardCoin>(@harvest, @alice);
     // }
@@ -1493,7 +1859,7 @@ module harvest::stake_lb_tests {
     //     // register staking pool with rewards
     //     let reward_coins = mint_default_coin<RewardCoin>(12345);
     //     let duration = 12345;
-    //     stake_lb::register_pool<RewardCoin>(&harvest, reward_coins, duration, option::none());
+    //     stake_lb::register_pool<RewardCoin>(&harvest, &stake_token, reward_coins, duration, option::none());
     //
     //     stake_lb::is_unlocked<RewardCoin>(@harvest, @alice);
     // }
@@ -1506,7 +1872,7 @@ module harvest::stake_lb_tests {
     //     // register staking pool with rewards
     //     let reward_coins = mint_default_coin<RewardCoin>(12345);
     //     let duration = 12345;
-    //     stake_lb::register_pool<RewardCoin>(&harvest, reward_coins, duration, option::none());
+    //     stake_lb::register_pool<RewardCoin>(&harvest, &stake_token, reward_coins, duration, option::none());
     //
     //     // unstake when stake not exists
     //     let coins =
@@ -1522,7 +1888,7 @@ module harvest::stake_lb_tests {
     //     // register staking pool with rewards
     //     let reward_coins = mint_default_coin<RewardCoin>(12345);
     //     let duration = 12345;
-    //     stake_lb::register_pool<RewardCoin>(&harvest, reward_coins, duration, option::none());
+    //     stake_lb::register_pool<RewardCoin>(&harvest, &stake_token, reward_coins, duration, option::none());
     //
     //     // harvest when stake not exists
     //     let coins =
@@ -1540,7 +1906,7 @@ module harvest::stake_lb_tests {
     //     // register staking pool with rewards
     //     let reward_coins = mint_default_coin<RewardCoin>(12345);
     //     let duration = 12345;
-    //     stake_lb::register_pool<RewardCoin>(&harvest, reward_coins, duration, option::none());
+    //     stake_lb::register_pool<RewardCoin>(&harvest, &stake_token, reward_coins, duration, option::none());
     //
     //     // stake 99 StakeCoins from alice
     //     let coins =
@@ -1564,7 +1930,7 @@ module harvest::stake_lb_tests {
     //     // register staking pool with rewards
     //     let reward_coins = mint_default_coin<RewardCoin>(12345);
     //     let duration = 12345;
-    //     stake_lb::register_pool<RewardCoin>(&harvest, reward_coins, duration, option::none());
+    //     stake_lb::register_pool<RewardCoin>(&harvest, &stake_token, reward_coins, duration, option::none());
     //
     //     // stake 0 StakeCoins
     //     coin::register<StakeCoin>(&harvest);
@@ -1581,7 +1947,7 @@ module harvest::stake_lb_tests {
     //     // register staking pool with rewards
     //     let reward_coins = mint_default_coin<RewardCoin>(12345);
     //     let duration = 12345;
-    //     stake_lb::register_pool<RewardCoin>(&harvest, reward_coins, duration, option::none());
+    //     stake_lb::register_pool<RewardCoin>(&harvest, &stake_token, reward_coins, duration, option::none());
     //
     //     // unstake 0 StakeCoins
     //     let coins =
@@ -1597,7 +1963,7 @@ module harvest::stake_lb_tests {
     //     // register staking pool with rewards
     //     let reward_coins = mint_default_coin<RewardCoin>(12345);
     //     let duration = 12345;
-    //     stake_lb::register_pool<RewardCoin>(&harvest, reward_coins, duration, option::none());
+    //     stake_lb::register_pool<RewardCoin>(&harvest, &stake_token, reward_coins, duration, option::none());
     //
     //     // deposit 0 RewardCoins
     //     let reward_coins = coin::zero<RewardCoin>();
@@ -1616,7 +1982,7 @@ module harvest::stake_lb_tests {
     //     // register staking pool with rewards
     //     let reward_coins = mint_default_coin<RewardCoin>(12345);
     //     let duration = 12345;
-    //     stake_lb::register_pool<RewardCoin>(&harvest, reward_coins, duration, option::none());
+    //     stake_lb::register_pool<RewardCoin>(&harvest, &stake_token, reward_coins, duration, option::none());
     //
     //     // stake 100 StakeCoins from alice
     //     let coins =
@@ -1641,7 +2007,7 @@ module harvest::stake_lb_tests {
     //     // register staking pool with rewards
     //     let reward_coins = mint_default_coin<RewardCoin>(12345);
     //     let duration = 12345;
-    //     stake_lb::register_pool<RewardCoin>(&harvest, reward_coins, duration, option::none());
+    //     stake_lb::register_pool<RewardCoin>(&harvest, &stake_token, reward_coins, duration, option::none());
     //
     //     // stake 100 StakeCoins from alice
     //     let coins =
@@ -1673,7 +2039,7 @@ module harvest::stake_lb_tests {
     //     // register staking pool without stake coin
     //     let reward_coins = mint_default_coin<RewardCoin>(12345);
     //     let duration = 12345;
-    //     stake_lb::register_pool<RewardCoin>(&harvest, reward_coins, duration, option::none());
+    //     stake_lb::register_pool<RewardCoin>(&harvest, &stake_token, reward_coins, duration, option::none());
     // }
     //
     // #[test]
@@ -1689,7 +2055,7 @@ module harvest::stake_lb_tests {
     //     // register staking pool with rewards
     //     let reward_coins = coin::zero<RewardCoin>();
     //     let duration = 12345;
-    //     stake_lb::register_pool<RewardCoin>(&harvest, reward_coins, duration, option::none());
+    //     stake_lb::register_pool<RewardCoin>(&harvest, &stake_token, reward_coins, duration, option::none());
     // }
     //
     // #[test]
@@ -1702,7 +2068,7 @@ module harvest::stake_lb_tests {
     //     // register staking pool with rewards
     //     let reward_coins = mint_default_coin<RewardCoin>(15768000000000);
     //     let duration = 15768000;
-    //     stake_lb::register_pool<RewardCoin>(&harvest, reward_coins, duration, option::none());
+    //     stake_lb::register_pool<RewardCoin>(&harvest, &stake_token, reward_coins, duration, option::none());
     //
     //     // stake from alice
     //     let coins =
@@ -1726,7 +2092,7 @@ module harvest::stake_lb_tests {
     //     // register staking pool with rewards
     //     let reward_coins = mint_default_coin<RewardCoin>(12345);
     //     let duration = 0;
-    //     stake_lb::register_pool<RewardCoin>(&harvest, reward_coins, duration, option::none());
+    //     stake_lb::register_pool<RewardCoin>(&harvest, &stake_token, reward_coins, duration, option::none());
     // }
     //
     // #[test]
@@ -1737,7 +2103,7 @@ module harvest::stake_lb_tests {
     //     // register staking pool with rewards
     //     let reward_coins = mint_default_coin<RewardCoin>(15768000000000);
     //     let duration = 15768000;
-    //     stake_lb::register_pool<RewardCoin>(&harvest, reward_coins, duration, option::none());
+    //     stake_lb::register_pool<RewardCoin>(&harvest, &stake_token, reward_coins, duration, option::none());
     //
     //     // deposit rewards less than rew_per_sec pool rate
     //     let reward_coins = mint_default_coin<RewardCoin>(999999);
@@ -1753,7 +2119,7 @@ module harvest::stake_lb_tests {
     //
     //     let reward_coins = mint_default_coin<RewardCoin>(15768000000000);
     //     let duration = 15768000;
-    //     stake_lb::register_pool<RewardCoin>(&harvest, reward_coins, duration, option::none());
+    //     stake_lb::register_pool<RewardCoin>(&harvest, &stake_token, reward_coins, duration, option::none());
     // }
     //
     // // Withdraw rewards tests.
@@ -1767,7 +2133,7 @@ module harvest::stake_lb_tests {
     //     // register staking pool with rewards
     //     let reward_coins = mint_default_coin<RewardCoin>(157680000000000);
     //     let duration = 15768000;
-    //     stake_lb::register_pool<RewardCoin>(&harvest, reward_coins, duration, option::none());
+    //     stake_lb::register_pool<RewardCoin>(&harvest, &stake_token, reward_coins, duration, option::none());
     //
     //     let reward_coins = stake_lb::withdraw_to_treasury<RewardCoin>(&treasury, @harvest, 157680000000000);
     //     coin::deposit(@treasury, reward_coins);
@@ -1781,7 +2147,7 @@ module harvest::stake_lb_tests {
     //     // register staking pool with rewards
     //     let reward_coins = mint_default_coin<RewardCoin>(157680000000000);
     //     let duration = 15768000;
-    //     stake_lb::register_pool<RewardCoin>(&harvest, reward_coins, duration, option::none());
+    //     stake_lb::register_pool<RewardCoin>(&harvest, &stake_token, reward_coins, duration, option::none());
     //
     //     stake_config::enable_global_emergency(&emergency);
     //
@@ -1797,7 +2163,7 @@ module harvest::stake_lb_tests {
     //     // register staking pool with rewards
     //     let reward_coins = mint_default_coin<RewardCoin>(157680000000000);
     //     let duration = 15768000;
-    //     stake_lb::register_pool<RewardCoin>(&harvest, reward_coins, duration, option::none());
+    //     stake_lb::register_pool<RewardCoin>(&harvest, &stake_token, reward_coins, duration, option::none());
     //
     //     stake_config::enable_global_emergency(&emergency);
     //
@@ -1815,7 +2181,7 @@ module harvest::stake_lb_tests {
     //     // register staking pool with rewards
     //     let reward_coins = mint_default_coin<RewardCoin>(157680000000000);
     //     let duration = 15768000;
-    //     stake_lb::register_pool<RewardCoin>(&harvest, reward_coins, duration, option::none());
+    //     stake_lb::register_pool<RewardCoin>(&harvest, &stake_token, reward_coins, duration, option::none());
     //
     //     timestamp::update_global_time_for_test_secs(START_TIME + duration + 7257600);
     //
@@ -1833,7 +2199,7 @@ module harvest::stake_lb_tests {
     //     // register staking pool with rewards
     //     let reward_coins = mint_default_coin<RewardCoin>(157680000000000);
     //     let duration = 15768000;
-    //     stake_lb::register_pool<RewardCoin>(&harvest, reward_coins, duration, option::none());
+    //     stake_lb::register_pool<RewardCoin>(&harvest, &stake_token, reward_coins, duration, option::none());
     //
     //     timestamp::update_global_time_for_test_secs(START_TIME + duration + 7257600);
     //     stake_config::enable_global_emergency(&emergency);
@@ -1853,7 +2219,7 @@ module harvest::stake_lb_tests {
     //     // register staking pool with rewards
     //     let reward_coins = mint_default_coin<RewardCoin>(157680000000000);
     //     let duration = 15768000;
-    //     stake_lb::register_pool<RewardCoin>(&harvest, reward_coins, duration, option::none());
+    //     stake_lb::register_pool<RewardCoin>(&harvest, &stake_token, reward_coins, duration, option::none());
     //
     //     timestamp::update_global_time_for_test_secs(START_TIME + duration + 7257599);
     //
@@ -1876,7 +2242,7 @@ module harvest::stake_lb_tests {
     //     // register staking pool with rewards
     //     let reward_coins = mint_default_coin<RewardCoin>(15768000000000);
     //     let duration = 15768000;
-    //     stake_lb::register_pool<RewardCoin>(&harvest, reward_coins, duration, option::none());
+    //     stake_lb::register_pool<RewardCoin>(&harvest, &stake_token, reward_coins, duration, option::none());
     //
     //     // stake 100 StakeCoins from alice
     //     let coins =
@@ -1916,7 +2282,7 @@ module harvest::stake_lb_tests {
     //
     //     let reward_coins = mint_default_coin<RewardCoin>(15768000000000);
     //     let duration = 15768000;
-    //     stake_lb::register_pool<RewardCoin>(&harvest, reward_coins, duration, option::none());
+    //     stake_lb::register_pool<RewardCoin>(&harvest, &stake_token, reward_coins, duration, option::none());
     //
     //     let coins =
     //         coin::withdraw<StakeCoin>(&alice_acc, 100000000);
@@ -1970,7 +2336,7 @@ module harvest::stake_lb_tests {
     //     coin::register<RewardCoin>(&alice_acc);
     //
     //     let reward_coins = mint_default_coin<RewardCoin>(606000000000);
-    //     stake_lb::register_pool<RewardCoin>(&harvest, reward_coins, duration, option::none());
+    //     stake_lb::register_pool<RewardCoin>(&harvest, &stake_token, reward_coins, duration, option::none());
     //
     //     let coins =
     //         coin::withdraw<StakeCoin>(&alice_acc, 30000000000000);

@@ -95,7 +95,7 @@ module harvest::lb_emergency_tests {
         token::deposit_token(&harvest, stake_token);
     }
 
-     #[test]
+    #[test]
     #[expected_failure(abort_code = stake_lb::ERR_EMERGENCY)]
     fun test_cannot_stake_with_emergency() {
         let (harvest, emergency_admin, st_collection_owner) = initialize_test();
@@ -105,30 +105,26 @@ module harvest::lb_emergency_tests {
         // stake token collection
         let st_collection_name = string::utf8(b"Liquidswap v1 #1 \"CX\"-\"CY\"-\"X25\"");
         create_st_collection(signer::address_of(&st_collection_owner), st_collection_name);
+        let bin_id = 1;
+        let token_data_id = create_token_data_id_with_bin_id(&st_collection_owner, st_collection_name, bin_id);
 
-        // register staking pool
-        let stake_token = create_stake_token(&st_collection_owner, st_collection_name, string::utf8(b"LB"));
+        // register staking pool with rewards
+        let stake_token = mint_stake_token(&st_collection_owner, token_data_id, 1);
         let reward_coins = mint_default_coin<RewardCoin>(12345 * ONE_COIN);
         let duration = 12345;
         stake_lb::register_pool<RewardCoin>(&harvest, &stake_token, reward_coins, duration, option::none());
+        token::deposit_token(&st_collection_owner, stake_token);
 
         stake_lb::enable_emergency<RewardCoin>(&emergency_admin, @harvest, st_collection_name);
 
-        let token_id = token::get_token_id(&stake_token);
-        let token_data_id = token::get_tokendata_id(token_id);
-        mint_token(&st_collection_owner, token_data_id, 1 * ONE_COIN);
-        token::direct_transfer(&st_collection_owner, &alice_acc, token_id, 1 * ONE_COIN);
-
-        let split_token = token::withdraw_token(&alice_acc, token_id, 1 * ONE_COIN);
+        let split_token = mint_stake_token(&st_collection_owner, token_data_id, 1 * ONE_COIN);
         stake_lb::stake<RewardCoin>(&alice_acc, @harvest, split_token);
-
-        token::deposit_token(&alice_acc, stake_token);
     }
 
     #[test]
     #[expected_failure(abort_code = stake_lb::ERR_EMERGENCY)]
     fun test_cannot_unstake_with_emergency() {
-         let (harvest, emergency_admin, st_collection_owner) = initialize_test();
+        let (harvest, emergency_admin, st_collection_owner) = initialize_test();
 
         let alice_acc = new_account(@alice);
 
@@ -152,7 +148,7 @@ module harvest::lb_emergency_tests {
 
         stake_lb::enable_emergency<RewardCoin>(&emergency_admin, @harvest, st_collection_name);
 
-        let token = stake_lb::unstake<RewardCoin>(&alice_acc, @harvest, st_collection_name, bin_id_1,100);
+        let token = stake_lb::unstake<RewardCoin>(&alice_acc, @harvest, st_collection_name, bin_id_1, 100);
 
         token::deposit_token(&alice_acc, token);
     }
