@@ -10,6 +10,8 @@ module harvest::stake {
     use aptos_std::math64;
     use aptos_std::math128;
     use aptos_std::table;
+    use aptos_std::table_with_length;
+    use aptos_std::table_with_length::TableWithLength;
     use aptos_framework::account;
     use aptos_framework::coin::{Self, Coin};
     use aptos_framework::timestamp;
@@ -91,6 +93,9 @@ module harvest::stake {
     /// When reward coin has more than 10 decimals.
     const ERR_INVALID_REWARD_DECIMALS: u64 = 122;
 
+    /// When not whitelisted user try to stake.
+    const ERR_NOT_WHITELISTED: u64 = 123;
+
     //
     // Constants
     //
@@ -148,10 +153,15 @@ module harvest::stake {
         /// Pool creator can give ability for users to increase their stake profitability
         /// by staking nft's from specified collection.
         nft_boost_config: Option<NFTBoostConfig>,
+        /// Table of users which are allowed to stake.
+        /// All users are allowed if length is 0.
+        whitelist: TableWithLength<address, bool>,
 
         /// This field set to `true` only in case of emergency:
         /// * only `emergency_unstake()` operation is available in the state of emergency
         emergency_locked: bool,
+
+
 
         stake_events: EventHandle<StakeEvent>,
         unstake_events: EventHandle<UnstakeEvent>,
@@ -209,11 +219,13 @@ module harvest::stake {
     ///     * `reward_coins` - R coins which are used in distribution as reward.
     ///     * `duration` - pool life duration, can be increased by depositing more rewards.
     ///     * `nft_boost_config` - optional boost configuration. Allows users to stake nft and get more rewards.
+    ///     * `whitelist` - list of accounts allowed to stake. All are allowed if empty.
     public fun register_pool<S, R>(
         owner: &signer,
         reward_coins: Coin<R>,
         duration: u64,
-        nft_boost_config: Option<NFTBoostConfig>
+        nft_boost_config: Option<NFTBoostConfig>,
+        whitelist: vector<address>
     ) {
         assert!(!exists<StakePool<S, R>>(signer::address_of(owner)), ERR_POOL_ALREADY_EXISTS);
         assert!(coin::is_coin_initialized<S>() && coin::is_coin_initialized<R>(), ERR_IS_NOT_COIN);
@@ -257,9 +269,12 @@ module harvest::stake {
             reward_coins,
             scale,
             total_boosted: 0,
+
             nft_boost_config,
+            whitelist: table_with_length::new(),
 
             emergency_locked: false,
+
             stake_events: account::new_event_handle<StakeEvent>(owner),
             unstake_events: account::new_event_handle<UnstakeEvent>(owner),
             deposit_events: account::new_event_handle<DepositRewardEvent>(owner),
@@ -267,6 +282,9 @@ module harvest::stake {
             boost_events: account::new_event_handle<BoostEvent>(owner),
             remove_boost_events: account::new_event_handle<RemoveBoostEvent>(owner),
         };
+
+        add_into_whitelist_inner(&mut pool, whitelist);
+
         move_to(owner, pool);
     }
 
@@ -371,12 +389,14 @@ module harvest::stake {
         let pool = borrow_global_mut<StakePool<S, R>>(pool_addr);
         assert!(!is_emergency_inner(pool), ERR_EMERGENCY);
 
+        // check user is able to stake
+        let user_address = signer::address_of(user);
+        assert!(is_whitelisted_inner(pool, user_address), ERR_NOT_WHITELISTED);
+
         // update pool accum_reward and timestamp
         update_accum_reward(pool);
 
         let current_time = timestamp::now_seconds();
-        let user_address = signer::address_of(user);
-
         if (!table::contains(&pool.stakes, user_address)) {
             let new_stake = UserStake {
                 amount,
@@ -630,6 +650,29 @@ module harvest::stake {
         );
 
         option::extract(&mut user_stake.nft)
+    }
+
+    /// Add user into whitelist.
+    ///     * `owner` - pool creator account.
+    ///     * `users` - list of users to whitelist.
+    public fun add_into_whitelist<S, R>(owner: &signer, users: vector<address>) acquires StakePool {
+        let pool_creator = signer::address_of(owner);
+        assert!(exists<StakePool<S, R>>(pool_creator), ERR_NO_POOL);
+
+        let pool = borrow_global_mut<StakePool<S, R>>(pool_creator);
+        add_into_whitelist_inner(pool, users);
+    }
+
+    /// Remove user from whitelist.
+    ///     * `owner` - pool creator account.
+    ///     * `user` - address of user to remove from whitelist.
+    /// Note: If no users left in whitelist it become deactivated.
+    public fun remove_from_whitelist<S, R>(owner: &signer, user: address) acquires StakePool {
+        let pool_creator = signer::address_of(owner);
+        assert!(exists<StakePool<S, R>>(pool_creator), ERR_NO_POOL);
+
+        let pool = borrow_global_mut<StakePool<S, R>>(pool_creator);
+        table_with_length::remove(&mut pool.whitelist, user);
     }
 
     /// Enables local "emergency state" for the specific `<S, R>` pool at `pool_addr`. Cannot be disabled.
@@ -919,6 +962,18 @@ module harvest::stake {
     }
 
     #[view]
+    /// Checks if user are whitelisted.
+    ///     * `pool_addr` - address under which pool are stored.
+    ///     * `user_addr` - user address.
+    /// Returns true if user can stake.
+    public fun is_whitelisted<S, R>(pool_addr: address, user_addr: address): bool acquires StakePool {
+        assert!(exists<StakePool<S, R>>(pool_addr), ERR_NO_POOL);
+
+        let pool = borrow_global<StakePool<S, R>>(pool_addr);
+        is_whitelisted_inner(pool, user_addr)
+    }
+
+    #[view]
     /// Checks whether "emergency state" is enabled. In that state, only `emergency_unstake()` function is enabled.
     ///     * `pool_addr` - address under which pool are stored.
     /// Returns true if emergency happened (local or global).
@@ -943,6 +998,27 @@ module harvest::stake {
     //
     // Private functions.
     //
+
+    /// Checks if user is whitelisted.
+    ///     * `pool` - pool to check whitelist.
+    /// Returns true if user in whitelist.
+    fun is_whitelisted_inner<S, R>(pool: &StakePool<S, R>, user_addr: address): bool {
+        if (table_with_length::length(&pool.whitelist) > 0) {
+            return table_with_length::contains(&pool.whitelist, user_addr)
+        };
+        true
+    }
+
+    /// Add list of users into whitelist.
+    ///     * `pool` - pool to add users.
+    ///     * `users` - list of users.
+    fun add_into_whitelist_inner<S, R>(pool: &mut StakePool<S, R>, users: vector<address>) {
+        let whitelist = &mut pool.whitelist;
+
+        vector::for_each(users, | addr | {
+            table_with_length::add(whitelist, addr, true);
+        });
+    }
 
     /// Checks if local pool or global emergency enabled.
     ///     * `pool` - pool to check emergency.

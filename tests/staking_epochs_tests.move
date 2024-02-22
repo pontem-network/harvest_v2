@@ -14,25 +14,6 @@ module harvest::staking_epochs_tests_move {
 
     const START_TIME: u64 = 682981200;
 
-    // todo: remove
-    fun print_epoch(epoch: u64) {
-        let (rewards_amount, reward_per_sec, accum_reward, start_time, last_update_time, end_time, distributed, ended_at)
-            = stake::get_epoch_info<S, R>(@harvest, epoch);
-        std::debug::print(&aptos_std::string_utils::format1(&b"Epoch INFO: {}", epoch));
-        std::debug::print(&aptos_std::string_utils::format1(&b"rewards_amount = {}", rewards_amount));
-        std::debug::print(&aptos_std::string_utils::format1(&b"reward_per_sec = {}", reward_per_sec));
-        std::debug::print(&aptos_std::string_utils::format1(&b"accum_reward = {}", accum_reward));
-        std::debug::print(&aptos_std::string_utils::format1(&b"start_time = {}", start_time));
-        std::debug::print(&aptos_std::string_utils::format1(&b"last_update_time = {}", last_update_time));
-        std::debug::print(&aptos_std::string_utils::format1(&b"end_time = {}", end_time));
-        std::debug::print(&aptos_std::string_utils::format1(&b"distributed = {}", distributed));
-        std::debug::print(&aptos_std::string_utils::format1(&b"ended_at = {}", ended_at));
-        std::debug::print(&aptos_std::string_utils::format1(&b"is_ghost = {}\n", reward_per_sec == 0));
-    }
-    fun print_line() {
-        std::debug::print(&std::string::utf8(b"============================================================================"));
-    }
-
     // Deposit reward on different epoch stages test
 
     #[test]
@@ -45,7 +26,8 @@ module harvest::staking_epochs_tests_move {
         // register staking pool with rewards
         let reward_coins = mint_default_coin<R>(amount<R>(1000, 0));
         let duration = 500;
-        stake::register_pool<S, R>(&harvest, reward_coins, duration, option::none());
+        stake::register_pool<S, R>(&harvest, reward_coins,
+            duration, option::none(), vector[]);
 
         // check 0 epoch fields
         let (rewards_amount, reward_per_sec, accum_reward,start_time,
@@ -121,7 +103,8 @@ module harvest::staking_epochs_tests_move {
         // register staking pool with rewards
         let reward_coins = mint_default_coin<R>(amount<R>(1000, 0));
         let duration = 500;
-        stake::register_pool<S, R>(&harvest, reward_coins, duration, option::none());
+        stake::register_pool<S, R>(&harvest, reward_coins,
+            duration, option::none(), vector[]);
 
         // check 0 epoch fields
         let (rewards_amount, reward_per_sec, accum_reward,start_time,
@@ -200,7 +183,8 @@ module harvest::staking_epochs_tests_move {
         // register staking pool with rewards
         let reward_coins = mint_default_coin<R>(amount<R>(1000, 0));
         let duration = 500;
-        stake::register_pool<S, R>(&harvest, reward_coins, duration, option::none());
+        stake::register_pool<S, R>(&harvest, reward_coins,
+            duration, option::none(), vector[]);
 
         // check 0 epoch fields
         let (rewards_amount, reward_per_sec, accum_reward,start_time,
@@ -294,7 +278,8 @@ module harvest::staking_epochs_tests_move {
         // register staking pool with rewards
         let reward_coins = mint_default_coin<R>(amount<R>(1000, 0));
         let duration = 500;
-        stake::register_pool<S, R>(&harvest, reward_coins, duration, option::none());
+        stake::register_pool<S, R>(&harvest, reward_coins,
+            duration, option::none(), vector[]);
 
         // check 0 epoch fields
         let (rewards_amount, reward_per_sec, accum_reward,start_time,
@@ -385,7 +370,8 @@ module harvest::staking_epochs_tests_move {
         // create pool
         let reward_coins = mint_default_coin<R>(amount<R>(157680000, 0));
         let duration = 15768000;
-        stake::register_pool<S, R>(&harvest, reward_coins, duration, option::none());
+        stake::register_pool<S, R>(&harvest, reward_coins,
+            duration, option::none(), vector[]);
 
         // stake some coins
         let coins =
@@ -488,7 +474,8 @@ module harvest::staking_epochs_tests_move {
         // register staking pool with rewards
         let reward_coins = mint_default_coin<R>(amount<R>(1000, 0));
         let duration = 5_000_000;
-        stake::register_pool<S, R>(&harvest, reward_coins, duration, option::none());
+        stake::register_pool<S, R>(&harvest, reward_coins,
+            duration, option::none(), vector[]);
 
         // stake 100 from alice
         stake::stake<S, R>(&alice_acc, @harvest, coin::withdraw<S>(&alice_acc, amount<S>(100, 0)));
@@ -566,7 +553,8 @@ module harvest::staking_epochs_tests_move {
         // register staking pool with rewards
         let reward_coins = mint_default_coin<R>(amount<R>(1000, 0));
         let duration = 500;
-        stake::register_pool<S, R>(&harvest, reward_coins, duration, option::none());
+        stake::register_pool<S, R>(&harvest, reward_coins,
+            duration, option::none(), vector[]);
 
         // wait till the end of first epoch and a minute more
         timestamp::update_global_time_for_test_secs(START_TIME + duration + 60);

@@ -78,7 +78,7 @@ module lp_staking_admin::lp_staking_tests {
         let aptos_coins = coin::withdraw<AptosCoin>(&harvest_acc, 50000000000);
         let duration = 5000000;
         stake::register_pool<LP<BTC, USDT, Uncorrelated>, AptosCoin>(&harvest_acc,
-            aptos_coins, duration, option::none());
+            aptos_coins, duration, option::none(), vector[]);
 
         // stake 999.999 LP from alice
         stake::stake<LP<BTC, USDT, Uncorrelated>, AptosCoin>(&alice_acc, @harvest, lp_coins);
