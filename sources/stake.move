@@ -10,8 +10,7 @@ module harvest::stake {
     use aptos_std::math64;
     use aptos_std::math128;
     use aptos_std::table;
-    use aptos_std::table_with_length;
-    use aptos_std::table_with_length::TableWithLength;
+    use aptos_std::table_with_length::{Self, TableWithLength};
     use aptos_framework::account;
     use aptos_framework::coin::{Self, Coin};
     use aptos_framework::timestamp;
@@ -160,8 +159,6 @@ module harvest::stake {
         /// This field set to `true` only in case of emergency:
         /// * only `emergency_unstake()` operation is available in the state of emergency
         emergency_locked: bool,
-
-
 
         stake_events: EventHandle<StakeEvent>,
         unstake_events: EventHandle<UnstakeEvent>,

@@ -603,6 +603,54 @@ module harvest::scripts_tests {
     }
 
     #[test]
+    fun test_script_add_and_remove_from_whitelist() {
+        let (harvest, _) = initialize_test();
+        let alice_acc = new_account_with_stake_coins(@alice, 10 * ONE_COIN);
+
+        let reward_coins = mint_default_coin<RewardCoin>(15768000000000);
+        coin::register<RewardCoin>(&harvest);
+        coin::deposit(@harvest, reward_coins);
+
+        // register staking pool with rewards and boost config
+        let duration = 15768000;
+        scripts::register_pool<StakeCoin, RewardCoin>(
+            &harvest,
+            15768000000000,
+            15768000,
+            vector[@bob],
+        );
+
+        // check alice not in whitelist
+        assert!(!stake::is_whitelisted<StakeCoin, RewardCoin>(@harvest, @alice), 1);
+        // check bob in whitelist
+        assert!(stake::is_whitelisted<StakeCoin, RewardCoin>(@harvest, @bob), 1);
+
+        // add alice remove bob
+        scripts::add_into_whitelist<StakeCoin, RewardCoin>(&harvest, vector[@alice]);
+        scripts::remove_from_whitelist<StakeCoin, RewardCoin>(&harvest, @bob);
+
+        // check alice in whitelist
+        assert!(stake::is_whitelisted<StakeCoin, RewardCoin>(@harvest, @alice), 1);
+        // check bob not in whitelist
+        assert!(!stake::is_whitelisted<StakeCoin, RewardCoin>(@harvest, @bob), 1);
+
+        scripts::stake<StakeCoin, RewardCoin>(
+            &alice_acc,
+            @harvest,
+            10 * ONE_COIN,
+        );
+
+        timestamp::update_global_time_for_test_secs(START_TIME + duration);
+
+        scripts::harvest<StakeCoin, RewardCoin>(
+            &alice_acc,
+            @harvest
+        );
+
+        assert!(coin::balance<RewardCoin>(@alice) == 15768000000000, 1);
+    }
+
+    #[test]
     fun test_script_enable_emergency() {
         let (harvest, emergency_admin) = initialize_test();
 

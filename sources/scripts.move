@@ -10,9 +10,6 @@ module harvest::scripts {
 
     use harvest::stake;
 
-    // todo: add entry for add_into_whitelist
-    // todo: add entry for remove_from_whitelist
-
     /// Register new staking pool with staking coin `S` and reward coin `R` without nft boost.
     ///     * `pool_owner` - account which will be used as a pool storage.
     ///     * `reward_amount` - reward amount in R coins.
@@ -126,7 +123,7 @@ module harvest::scripts {
     ///     * `depositor` - account with the `R` reward coins in the balance.
     ///     * `pool_addr` - address of the pool.
     ///     * `reward_amount` - amount of the reward coin `R` to deposit.
-    ///     * `duration` - TODO: descript
+    ///     * `duration` - pool life duration.
     public entry fun deposit_reward_coins<S, R>(depositor: &signer, pool_addr: address, reward_amount: u64, duration: u64) {
         let reward_coins = coin::withdraw<R>(depositor, reward_amount);
         stake::deposit_reward_coins<S, R>(depositor, pool_addr, reward_coins, duration);
@@ -159,6 +156,21 @@ module harvest::scripts {
     public entry fun remove_boost<S, R>(user: &signer, pool_addr: address) {
         let nft = stake::remove_boost<S, R>(user, pool_addr);
         token::deposit_token(user, nft);
+    }
+
+    /// Add user into whitelist.
+    ///     * `pool_owner` - pool creator account.
+    ///     * `users` - list of users to whitelist.
+    public entry fun add_into_whitelist<S, R>(pool_owner: &signer, users: vector<address>) {
+        stake::add_into_whitelist<S, R>(pool_owner, users);
+    }
+
+    /// Remove user from whitelist.
+    ///     * `owner` - pool creator account.
+    ///     * `user` - address of user to remove from whitelist.
+    /// Note: If no users left in whitelist it become deactivated.
+    public entry fun remove_from_whitelist<S, R>(pool_owner: &signer, user: address) {
+        stake::remove_from_whitelist<S, R>(pool_owner, user);
     }
 
     /// Enable "emergency state" for a pool on a `pool_addr` address. This state cannot be disabled
