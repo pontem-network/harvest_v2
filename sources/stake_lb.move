@@ -969,6 +969,26 @@ module harvest::stake_lb {
     }
 
     #[view]
+    /// Get user bin id.
+    ///     * `pool_addr` - address under which pool are stored.
+    ///     * `collection_name` - name of the collection to which the token belongs.
+    ///     * `user_addr` - stake owner address
+    /// Returns total staked amount.
+    public fun get_user_bin_ids<R>(pool_addr: address, collection_name: String, user_addr: address): vector<u32> acquires Pools {
+        assert!(exists<Pools<R>>(pool_addr), ERR_NO_POOLS);
+
+        let pools = &borrow_global<Pools<R>>(pool_addr).pools;
+        assert!(table::contains(pools, collection_name), ERR_NO_POOL);
+
+        let pool = table::borrow(pools, collection_name);
+        assert!(table::contains(&pool.stakes, user_addr), ERR_NO_STAKE);
+
+        let user_stake = table::borrow(&pool.stakes, user_addr);
+
+        user_stake.bin_ids
+    }
+
+    #[view]
     /// Checks current total boosted amount in pool.
     ///     * `pool_addr` - address under which pool are stored.
     ///     * `collection_name` - name of the collection to which the token belongs.
