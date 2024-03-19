@@ -1081,7 +1081,7 @@ module harvest::stake {
 
                     start_time: epoch_end_time,
                     last_update_time: current_time,
-                    end_time: current_time + WEEK_IN_SECONDS,
+                    end_time: current_time,
 
                     distributed: 0,
                     ended_at: 0,
