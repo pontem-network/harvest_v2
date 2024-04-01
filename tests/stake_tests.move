@@ -195,6 +195,84 @@ module harvest::stake_tests {
     }
 
     #[test]
+    public fun test_stake_and_unstake_custom_lockup_period_1() {
+        let (harvest, _) = initialize_test();
+
+        let alice_acc = new_account_with_stake_coins(@alice, 900000000);
+
+        // register staking pool with rewards
+        let reward_coins = mint_default_coin<RewardCoin>(15768000000000);
+        let duration = 15768000;
+        stake::register_pool<StakeCoin, RewardCoin>(&harvest, reward_coins,
+            duration, 7000000, option::none(), vector[]);
+
+        // check no stakes
+        assert!(!stake::stake_exists<StakeCoin, RewardCoin>(@harvest, @alice), 1);
+
+        // stake 500 StakeCoins from alice
+        let coins =
+            coin::withdraw<StakeCoin>(&alice_acc, 500000000);
+        stake::stake<StakeCoin, RewardCoin>(&alice_acc, @harvest, coins);
+        assert!(coin::balance<StakeCoin>(@alice) == 400000000, 1);
+        assert!(stake::get_user_stake<StakeCoin, RewardCoin>(@harvest, @alice) == 500000000, 1);
+        assert!(stake::get_pool_total_stake<StakeCoin, RewardCoin>(@harvest) == 500000000, 1);
+        assert!(!stake::is_unlocked<StakeCoin, RewardCoin>(@harvest, @alice), 1);
+
+        // wait one week
+        timestamp::update_global_time_for_test_secs(START_TIME + WEEK_IN_SECONDS);
+        assert!(!stake::is_unlocked<StakeCoin, RewardCoin>(@harvest, @alice), 1);
+
+        // wait 7000000
+        timestamp::update_global_time_for_test_secs(START_TIME + 7000000);
+        assert!(stake::is_unlocked<StakeCoin, RewardCoin>(@harvest, @alice), 1);
+
+        // unstake 400 StakeCoins from alice
+        let coins =
+            stake::unstake<StakeCoin, RewardCoin>(&alice_acc, @harvest, 500000000);
+        assert!(coin::value(&coins) == 500000000, 1);
+        coin::deposit<StakeCoin>(@alice, coins);
+    }
+
+    #[test]
+    public fun test_stake_and_unstake_custom_lockup_period_2() {
+        let (harvest, _) = initialize_test();
+
+        let alice_acc = new_account_with_stake_coins(@alice, 900000000);
+
+        // register staking pool with rewards
+        let reward_coins = mint_default_coin<RewardCoin>(15768000000000);
+        let duration = 15768000;
+        stake::register_pool<StakeCoin, RewardCoin>(&harvest, reward_coins,
+            duration, 2, option::none(), vector[]);
+
+        // check no stakes
+        assert!(!stake::stake_exists<StakeCoin, RewardCoin>(@harvest, @alice), 1);
+
+        // stake 500 StakeCoins from alice
+        let coins =
+            coin::withdraw<StakeCoin>(&alice_acc, 500000000);
+        stake::stake<StakeCoin, RewardCoin>(&alice_acc, @harvest, coins);
+        assert!(coin::balance<StakeCoin>(@alice) == 400000000, 1);
+        assert!(stake::get_user_stake<StakeCoin, RewardCoin>(@harvest, @alice) == 500000000, 1);
+        assert!(stake::get_pool_total_stake<StakeCoin, RewardCoin>(@harvest) == 500000000, 1);
+        assert!(!stake::is_unlocked<StakeCoin, RewardCoin>(@harvest, @alice), 1);
+
+        // wait 1 sec
+        timestamp::update_global_time_for_test_secs(START_TIME + 1);
+        assert!(!stake::is_unlocked<StakeCoin, RewardCoin>(@harvest, @alice), 1);
+
+        // wait 2 sec
+        timestamp::update_global_time_for_test_secs(START_TIME + 2);
+        assert!(stake::is_unlocked<StakeCoin, RewardCoin>(@harvest, @alice), 1);
+
+        // unstake 400 StakeCoins from alice
+        let coins =
+            stake::unstake<StakeCoin, RewardCoin>(&alice_acc, @harvest, 500000000);
+        assert!(coin::value(&coins) == 500000000, 1);
+        coin::deposit<StakeCoin>(@alice, coins);
+    }
+
+    #[test]
     public fun test_unstake_works_after_pool_duration_end() {
         let (harvest, _) = initialize_test();
 
