@@ -1266,12 +1266,12 @@ module harvest::stake {
 
     #[test_only]
     /// Access staking pool fields with no getters.
-    public fun get_pool_info<S, R>(pool_addr: address): (u64, u128, u64, u64, u128) acquires StakePool {
+    public fun get_pool_info<S, R>(pool_addr: address): (u64, u128, u64, u64, u128, u64) acquires StakePool {
         let pool = borrow_global<StakePool<S, R>>(pool_addr);
         let epoch = vector::borrow(&pool.epochs, get_pool_current_epoch_inner(pool));
 
         (epoch.reward_per_sec, epoch.accum_reward, epoch.last_update_time,
-            coin::value<R>(&pool.reward_coins), pool.scale)
+            coin::value<R>(&pool.reward_coins), pool.scale, pool.lockup_period)
     }
 
     #[test_only]
