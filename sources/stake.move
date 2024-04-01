@@ -144,6 +144,8 @@ module harvest::stake {
         reward_coins: Coin<R>,
         // multiplier to handle decimals
         scale: u128,
+        // Blocking withdrawal of stake in seconds
+        lockup_period: u64,
 
         total_boosted: u128,
 
@@ -214,12 +216,14 @@ module harvest::stake {
     ///     * `owner` - pool creator account, under which the pool will be stored.
     ///     * `reward_coins` - R coins which are used in distribution as reward.
     ///     * `duration` - pool life duration, can be increased by depositing more rewards.
+    ///     * `lockup_period` - blocking withdrawal of stake in seconds.
     ///     * `nft_boost_config` - optional boost configuration. Allows users to stake nft and get more rewards.
     ///     * `whitelist` - list of accounts allowed to stake. All are allowed if empty.
     public fun register_pool<S, R>(
         owner: &signer,
         reward_coins: Coin<R>,
         duration: u64,
+        lockup_period: u64,
         nft_boost_config: Option<NFTBoostConfig>,
         whitelist: vector<address>
     ) {
@@ -263,6 +267,7 @@ module harvest::stake {
             stake_coins: coin::zero(),
             reward_coins,
             scale,
+            lockup_period,
             total_boosted: 0,
 
             nft_boost_config,
@@ -397,7 +402,7 @@ module harvest::stake {
                 amount,
                 unobtainable_rewards: vector[],
                 earned_reward: 0,
-                unlock_time: current_time + WEEK_IN_SECONDS,
+                unlock_time: current_time + pool.lockup_period,
                 nft: option::none(),
                 boosted_amount: 0,
             };
@@ -440,7 +445,7 @@ module harvest::stake {
                 user_stake
             );
 
-            user_stake.unlock_time = current_time + WEEK_IN_SECONDS;
+            user_stake.unlock_time = current_time + pool.lockup_period;
         };
 
         coin::merge(&mut pool.stake_coins, coins);
