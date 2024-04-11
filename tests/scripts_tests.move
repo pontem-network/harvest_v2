@@ -581,10 +581,7 @@ module harvest::scripts_tests {
     #[test]
     fun test_script_deposit_reward_coins() {
         let (harvest, _) = initialize_test();
-        let alice_acc = new_account(@alice);
-
         coin::register<RewardCoin>(&harvest);
-        coin::register<RewardCoin>(&alice_acc);
 
         let reward_coins = mint_default_coin<RewardCoin>(1000 * ONE_COIN);
         let duration = 100000000;
@@ -593,13 +590,13 @@ module harvest::scripts_tests {
             duration, vector[]);
 
         let reward_coins = mint_default_coin<RewardCoin>(1 * ONE_COIN);
-        coin::deposit(@alice, reward_coins);
-        assert!(coin::balance<RewardCoin>(@alice) == 1000000, 1);
-        scripts::deposit_reward_coins<StakeCoin, RewardCoin>(&alice_acc, @harvest, 1 * ONE_COIN, 1);
+        coin::deposit(@harvest, reward_coins);
+        assert!(coin::balance<RewardCoin>(@harvest) == 1000000, 1);
+        scripts::deposit_reward_coins<StakeCoin, RewardCoin>(&harvest, 1 * ONE_COIN, 1);
 
         let (_, _, _, reward_coin_amount, _) = stake::get_pool_info<StakeCoin, RewardCoin>(@harvest);
         assert!(reward_coin_amount == 1001000000, 1);
-        assert!(coin::balance<RewardCoin>(@alice) == 0, 1);
+        assert!(coin::balance<RewardCoin>(@harvest) == 0, 1);
     }
 
     #[test]
