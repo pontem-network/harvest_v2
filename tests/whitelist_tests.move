@@ -49,7 +49,7 @@ module harvest::whitelist_tests {
         let reward_coins = mint_default_coin<R>(15768000000000);
         let duration = 15768000;
         stake::register_pool<S, R>(&harvest, reward_coins,
-            duration, option::none(), vector[@alice]);
+            duration, 0, option::none(), vector[@alice]);
 
         // check no stakes
         assert!(!stake::stake_exists<S, R>(@harvest, @alice), 1);
@@ -79,7 +79,7 @@ module harvest::whitelist_tests {
         let reward_coins = mint_default_coin<R>(15768000000000);
         let duration = 15768000;
         stake::register_pool<S, R>(&harvest, reward_coins,
-            duration, option::none(), vector[@alice, @bob]);
+            duration, 0, option::none(), vector[@alice, @bob]);
 
         // check no stakes
         assert!(!stake::stake_exists<S, R>(@harvest, @alice), 1);
@@ -119,7 +119,7 @@ module harvest::whitelist_tests {
         let reward_coins = mint_default_coin<R>(15768000000000);
         let duration = 15768000;
         stake::register_pool<S, R>(&harvest, reward_coins,
-            duration, option::none(), vector[@alice]);
+            duration, 0, option::none(), vector[@alice]);
 
         // check whitelist
         assert!(stake::is_whitelisted<S, R>(@harvest, @alice), 1);
@@ -142,7 +142,7 @@ module harvest::whitelist_tests {
         let reward_coins = mint_default_coin<R>(15768000000000);
         let duration = 15768000;
         stake::register_pool<S, R>(&harvest, reward_coins,
-            duration, option::none(), vector[@0x41, @0x42]);
+            duration, 0, option::none(), vector[@0x41, @0x42]);
 
         // check whitelist
         assert!(!stake::is_whitelisted<S, R>(@harvest, @alice), 1);
@@ -188,7 +188,7 @@ module harvest::whitelist_tests {
         let reward_coins = mint_default_coin<R>(15768000000000);
         let duration = 15768000;
         stake::register_pool<S, R>(&harvest, reward_coins,
-            duration, option::none(), vector[@alice, @bob]);
+            duration, 0, option::none(), vector[@alice, @bob]);
 
         // check whitelist
         assert!(stake::is_whitelisted<S, R>(@harvest, @alice), 1);
@@ -229,7 +229,7 @@ module harvest::whitelist_tests {
         let reward_coins = mint_default_coin<R>(15768000000000);
         let duration = 15768000;
         stake::register_pool<S, R>(&harvest, reward_coins,
-            duration, option::none(), vector[@alice, @bob]);
+            duration, 0, option::none(), vector[@alice, @bob]);
 
         // check whitelist
         assert!(stake::is_whitelisted<S, R>(@harvest, @alice), 1);
@@ -259,7 +259,7 @@ module harvest::whitelist_tests {
         let reward_coins = mint_default_coin<R>(15768000000000);
         let duration = 15768000;
         stake::register_pool<S, R>(&harvest, reward_coins,
-            duration, option::none(), vector[@bob]);
+            duration, 0, option::none(), vector[@bob]);
 
         // check whitelist
         assert!(!stake::is_whitelisted<S, R>(@harvest, @alice), 1);
@@ -327,7 +327,7 @@ module harvest::whitelist_tests {
         let reward_coins = mint_default_coin<R>(15768000000000);
         let duration = 15768000;
         stake::register_pool<S, R>(&harvest, reward_coins,
-            duration, option::none(), vector[]);
+            duration, 0, option::none(), vector[]);
 
         stake::add_into_whitelist<S, R>(&alice_acc, vector[@alice]);
     }
@@ -342,7 +342,7 @@ module harvest::whitelist_tests {
         let reward_coins = mint_default_coin<R>(15768000000000);
         let duration = 15768000;
         stake::register_pool<S, R>(&harvest, reward_coins,
-            duration, option::none(), vector[]);
+            duration, 0, option::none(), vector[]);
 
         stake::remove_from_whitelist<S, R>(&alice_acc, @alice);
     }
