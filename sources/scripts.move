@@ -14,21 +14,24 @@ module harvest::scripts {
     ///     * `pool_owner` - account which will be used as a pool storage.
     ///     * `reward_amount` - reward amount in R coins.
     ///     * `duration` - pool life duration, can be increased by depositing more rewards.
+    ///     * `lockup_period` - blocking withdrawal of stake in seconds.
     ///     * `whitelist` - list of accounts allowed to stake. All are allowed if empty.
     public entry fun register_pool<S, R>(
         pool_owner: &signer,
         reward_amount: u64,
         duration: u64,
+        lockup_period: u64,
         whitelist: vector<address>
     ) {
         let rewards = coin::withdraw<R>(pool_owner, reward_amount);
-        stake::register_pool<S, R>(pool_owner, rewards, duration, option::none(), whitelist);
+        stake::register_pool<S, R>(pool_owner, rewards, duration, lockup_period, option::none(), whitelist);
     }
 
     /// Register new staking pool with staking coin `S` and reward coin `R` with nft boost.
     ///     * `pool_owner` - account which will be used as a pool storage.
     ///     * `reward_amount` - reward amount in R coins.
     ///     * `duration` - pool life duration, can be increased by depositing more rewards.
+    ///     * `lockup_period` - blocking withdrawal of stake in seconds.
     ///     * `collection_owner` - address of nft collection creator.
     ///     * `collection_name` - nft collection name.
     ///     * `boost_percent` - percentage of increasing user stake "power" after nft stake.
@@ -37,6 +40,7 @@ module harvest::scripts {
         pool_owner: &signer,
         reward_amount: u64,
         duration: u64,
+        lockup_period: u64,
         collection_owner: address,
         collection_name: String,
         boost_percent: u128,
@@ -44,7 +48,7 @@ module harvest::scripts {
     ) {
         let rewards = coin::withdraw<R>(pool_owner, reward_amount);
         let boost_config = stake::create_boost_config(collection_owner, collection_name, boost_percent);
-        stake::register_pool<S, R>(pool_owner, rewards, duration, option::some(boost_config), whitelist);
+        stake::register_pool<S, R>(pool_owner, rewards, duration, lockup_period, option::some(boost_config), whitelist);
     }
 
     /// Stake an `amount` of `Coin<S>` to the pool of stake coin `S` and reward coin `R` on the address `pool_addr`.
