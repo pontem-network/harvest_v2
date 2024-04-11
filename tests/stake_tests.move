@@ -1186,6 +1186,23 @@ module harvest::stake_tests {
 
     #[test]
     #[expected_failure(abort_code = stake::ERR_NO_POOL)]
+    public fun test_deposit_reward_coins_fails_if_performed_from_wrong_owner() {
+        let (harvest, _) = initialize_test();
+        let alice = new_account(@alice);
+
+        // register staking pool with rewards
+        let reward_coins = mint_default_coin<RewardCoin>(15768000000000);
+        let duration = 15768000;
+        stake::register_pool<StakeCoin, RewardCoin>(&harvest, reward_coins,
+            duration, option::none(), vector[]);
+
+        // deposit more rewards
+        let reward_coins = mint_default_coin<RewardCoin>(604800000000);
+        stake::deposit_reward_coins<StakeCoin, RewardCoin>(&alice, reward_coins, 15768000 + 604800);
+    }
+
+    #[test]
+    #[expected_failure(abort_code = stake::ERR_NO_POOL)]
     public fun test_stake_fails_if_pool_does_not_exist() {
         let harvest = new_account(@harvest);
 
