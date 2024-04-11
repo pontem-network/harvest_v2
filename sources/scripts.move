@@ -120,8 +120,7 @@ module harvest::scripts {
     }
 
     /// Deposit more `Coin<R>` rewards to the pool.
-    ///     * `depositor` - account with the `R` reward coins in the balance.
-    ///     * `pool_addr` - address of the pool.
+    ///     * `depositor` - pool owner with the `R` reward coins in the balance.
     ///     * `reward_amount` - amount of the reward coin `R` to deposit.
     ///     * `duration` - pool life duration.
     public entry fun deposit_reward_coins<S, R>(depositor: &signer, reward_amount: u64, duration: u64) {
