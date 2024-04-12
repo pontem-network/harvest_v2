@@ -47,7 +47,7 @@ module harvest::staking_epochs_tests_move {
 
         // create new epoch, take some rewards from previous
         let reward_coins = mint_default_coin<R>(amount<R>(1000, 0));
-        stake::deposit_reward_coins<S, R>(&alice_acc, @harvest, reward_coins, 500);
+        stake::deposit_reward_coins<S, R>(&harvest, reward_coins, 500);
         let curr_epoch = stake::get_pool_current_epoch<S, R>(@harvest);
         assert!(curr_epoch == 1, 0);
 
@@ -127,7 +127,7 @@ module harvest::staking_epochs_tests_move {
 
         // create new epoch, take some rewards from previous
         let reward_coins = mint_default_coin<R>(amount<R>(1000, 0));
-        stake::deposit_reward_coins<S, R>(&alice_acc, @harvest, reward_coins, 500);
+        stake::deposit_reward_coins<S, R>(&harvest, reward_coins, 500);
         let curr_epoch = stake::get_pool_current_epoch<S, R>(@harvest);
         assert!(curr_epoch == 1, 0);
 
@@ -207,7 +207,7 @@ module harvest::staking_epochs_tests_move {
 
         // create new epoch
         let reward_coins = mint_default_coin<R>(amount<R>(1000, 0));
-        stake::deposit_reward_coins<S, R>(&alice_acc, @harvest, reward_coins, 500);
+        stake::deposit_reward_coins<S, R>(&harvest, reward_coins, 500);
         let curr_epoch = stake::get_pool_current_epoch<S, R>(@harvest);
         assert!(curr_epoch == 2, 0);
 
@@ -302,7 +302,7 @@ module harvest::staking_epochs_tests_move {
 
         // create new epoch
         let reward_coins = mint_default_coin<R>(amount<R>(1000, 0));
-        stake::deposit_reward_coins<S, R>(&alice_acc, @harvest, reward_coins, 500);
+        stake::deposit_reward_coins<S, R>(&harvest, reward_coins, 500);
         let curr_epoch = stake::get_pool_current_epoch<S, R>(@harvest);
         assert!(curr_epoch == 2, 0);
 
@@ -441,7 +441,7 @@ module harvest::staking_epochs_tests_move {
 
         // create new epoch
         let reward_coins = mint_default_coin<R>(amount<R>(150, 0));
-        stake::deposit_reward_coins<S, R>(&alice_acc, @harvest, reward_coins, 150);
+        stake::deposit_reward_coins<S, R>(&harvest, reward_coins, 150);
 
         // wait full epoch duration & check accum reward
         timestamp::update_global_time_for_test_secs(START_TIME + duration + WEEK_IN_SECONDS * 200 + 150);
@@ -491,7 +491,7 @@ module harvest::staking_epochs_tests_move {
 
         // create new epoch
         let reward_coins = mint_default_coin<R>(amount<R>(5000, 0));
-        stake::deposit_reward_coins<S, R>(&alice_acc, @harvest, reward_coins, 500);
+        stake::deposit_reward_coins<S, R>(&harvest, reward_coins, 500);
         assert!(stake::get_pool_current_epoch<S, R>(@harvest) == 2, 0);
 
         // wait half of second epoch
@@ -561,7 +561,7 @@ module harvest::staking_epochs_tests_move {
 
         // create new epoch
         let reward_coins = mint_default_coin<R>(amount<R>(1000, 0));
-        stake::deposit_reward_coins<S, R>(&alice_acc, @harvest, reward_coins, 500);
+        stake::deposit_reward_coins<S, R>(&harvest, reward_coins, 500);
         assert!(stake::get_pool_current_epoch<S, R>(@harvest) == 2, 0);
 
         // wait till the end of first epoch and a minute more
@@ -569,7 +569,7 @@ module harvest::staking_epochs_tests_move {
 
         // create new epoch
         let reward_coins = mint_default_coin<R>(amount<R>(1200, 0));
-        stake::deposit_reward_coins<S, R>(&alice_acc, @harvest, reward_coins, 6_000_000);
+        stake::deposit_reward_coins<S, R>(&harvest, reward_coins, 6_000_000);
         assert!(stake::get_pool_current_epoch<S, R>(@harvest) == 4, 0);
 
         // wait 1/3 of third epoch

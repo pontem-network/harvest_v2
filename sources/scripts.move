@@ -124,13 +124,12 @@ module harvest::scripts {
     }
 
     /// Deposit more `Coin<R>` rewards to the pool.
-    ///     * `depositor` - account with the `R` reward coins in the balance.
-    ///     * `pool_addr` - address of the pool.
+    ///     * `depositor` - pool owner with the `R` reward coins in the balance.
     ///     * `reward_amount` - amount of the reward coin `R` to deposit.
     ///     * `duration` - pool life duration.
-    public entry fun deposit_reward_coins<S, R>(depositor: &signer, pool_addr: address, reward_amount: u64, duration: u64) {
+    public entry fun deposit_reward_coins<S, R>(depositor: &signer, reward_amount: u64, duration: u64) {
         let reward_coins = coin::withdraw<R>(depositor, reward_amount);
-        stake::deposit_reward_coins<S, R>(depositor, pool_addr, reward_coins, duration);
+        stake::deposit_reward_coins<S, R>(depositor, reward_coins, duration);
     }
 
     /// Boosts user stake with nft.

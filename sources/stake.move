@@ -289,16 +289,15 @@ module harvest::stake {
     }
 
     /// Depositing reward coins to specific pool, updates pool duration.
-    ///     * `depositor` - rewards depositor account.
-    ///     * `pool_addr` - address under which pool are stored.
+    ///     * `depositor` - rewards depositor and pool owner account.
     ///     * `coins` - R coins which are used in distribution as reward.
     ///     * `duration` - new pool life duration.
     public fun deposit_reward_coins<S, R>(
         depositor: &signer,
-        pool_addr: address,
         coins: Coin<R>,
         duration: u64,
     ) acquires StakePool {
+        let pool_addr = signer::address_of(depositor);
         assert!(exists<StakePool<S, R>>(pool_addr), ERR_NO_POOL);
         assert!(duration > 0, ERR_DURATION_CANNOT_BE_ZERO);
 
@@ -360,11 +359,10 @@ module harvest::stake {
 
         vector::push_back(epochs, next_epoch);
 
-        let depositor_addr = signer::address_of(depositor);
         event::emit_event<DepositRewardEvent>(
             &mut pool.deposit_events,
             DepositRewardEvent {
-                user_address: depositor_addr,
+                pool_addr,
                 new_amount: amount,
                 prev_amount: undistrib_rewards_amount,
                 epoch_duration,
@@ -1227,7 +1225,7 @@ module harvest::stake {
     }
 
     struct DepositRewardEvent has drop, store {
-        user_address: address,
+        pool_addr: address,
         new_amount: u64,
         prev_amount: u64,
         epoch_duration: u64,
